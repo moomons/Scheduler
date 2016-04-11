@@ -191,12 +191,15 @@ def flow_table_info(topology, path, pro):
         preNode = path[i-1]
         curNode = path[i]
         nextNode = path[i+1]
-        #print preNode, curNode, nextNode
+        print 'preNode, curNode, nextNode:'
+        print preNode, curNode, nextNode
         
         dpid = topology.node[curNode][0]
         inport = topology.adj[preNode][curNode][2]
         outport = topology.adj[curNode][nextNode][1]
-        #print dpid, inport, outport
+        print 'dpid, inport, outport:'
+        print dpid, inport, outport
+
         # set metrics in a flow table
         flow = {}
         flow["switch"] = "%s" % dpid
@@ -206,8 +209,9 @@ def flow_table_info(topology, path, pro):
         flow["ingress-port"] = "%d" % inport
         flow["active"] = "true"
         flow["actions"] = "output=%d" % outport
-        
-        #print flow
+
+        print 'flow:'
+        print flow
         flowtables.append(flow)
     if pro: 
         flow_table_pusher(flowtables)
