@@ -36,7 +36,7 @@ DEBUG = 1
 #global portinfo,portbytes,mylock
 portinfo = defaultdict(lambda:defaultdict(lambda:None))
 portbytes = defaultdict(lambda:defaultdict(lambda:None))
-topology = topo.topo()
+topology = topo.topo()  # 1. get topo info
 requestflow = []
 #mylock = threading.Lock() 
 
@@ -138,6 +138,8 @@ def getPortRate(interval):
         #print time.time()
         #print portinfo
         time.sleep(interval)
+
+
 def flow_table_pusher(flowtables):
     
     host = '192.168.109.214'
@@ -154,7 +156,8 @@ def flow_table_pusher(flowtables):
         req = urllib2.Request(url, jdata)
         response = urllib2.urlopen(req)
         print response.read()
-        
+
+
 def flow_table_delete(flowtables):
     
     host = '192.168.109.214'
@@ -172,7 +175,8 @@ def flow_table_delete(flowtables):
         req.get_method = lambda: 'DELETE'
         response = urllib2.urlopen(req)
         print response.read()
-        
+
+
 def flow_table_info(topology, path, pro):
     pathnumstr = ""
     for i in path:
@@ -208,7 +212,8 @@ def flow_table_info(topology, path, pro):
     if pro: 
         flow_table_pusher(flowtables)
     return flowtables
-    
+
+
 '''
 coflow_process
 function:
@@ -240,13 +245,19 @@ def coflow_process(request):
     logging.warning('=======flow pusher end =======')
     requestflow.append(request)
     requestflow.append(flows)
-    logging.warning('=======Request preocess end =======')
+    logging.warning('=======Request process end =======')
     
     logging.warning(requestflow)
 
+
 def main():
+    print('Started: Scheduler')
+    
     # port RX/TX calculating
     interval = 5
+
+    host = '127.0.0.1'
+    port = 7999
     
     t2 = MyThread(getPortRate, [interval], "RX/TX calculating")
     t2.isDaemon()
@@ -259,10 +270,14 @@ def main():
         logging.warning(portinfo)
     
     
+    print('Starting server: ' + host + ':' + str(port))
+
     Handler = ServerHandler
-    httpd = SocketServer.TCPServer(("localhost", 8000), Handler)
+    httpd = SocketServer.TCPServer((host, port), Handler)
+
     httpd.serve_forever()
 
 
 if __name__ == '__main__':
     main()
+

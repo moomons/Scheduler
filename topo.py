@@ -95,7 +95,7 @@ class topo(object):
         
     def get_routing_topo(self):
         # topology with weight infomation
-        print "test1"
+        print "get_routing_topo"
         routingTopo = defaultdict(lambda:defaultdict(lambda:None))
         for i in self.adj:
             for j in self.adj[i]:
