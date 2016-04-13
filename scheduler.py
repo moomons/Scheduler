@@ -150,7 +150,7 @@ def getPortRate(interval):
                     portinfo[dpid][portnum] = [(newrbyte-oldrbyte)/interval,(newtbyte-oldtbyte)/interval,newrbyte,newtbyte]
 
         if DEBUG == 1:
-            print time.time()  # DEBUG INFO
+            print 'Time: ' + str(time.time())  # DEBUG INFO
             print portinfo
             print '======================================== That was getPortRate() LOOP'
 
