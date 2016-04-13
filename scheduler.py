@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-schedular 
+Scheduler
 
 main function :
  1. get topo info
@@ -12,6 +12,8 @@ main function :
 author : Xiahe Liu
 
 original version date: 2016/03/05
+
+debugged, modified and added functionality by mons
 '''
 
 import logging
@@ -26,7 +28,6 @@ from collections import defaultdict
 import threading
 import os
 
-#import SchedularHttpServer
 #from flow import *
 #from routing import *
 #from provision import *
@@ -39,6 +40,7 @@ portbytes = defaultdict(lambda:defaultdict(lambda:None))
 topology = topo.topo()  # 1. get topo info
 requestflow = []
 #mylock = threading.Lock() 
+
 
 # multi-threading class
 class MyThread(threading.Thread):
@@ -58,25 +60,33 @@ class MyThread(threading.Thread):
 def simple_json_get(url):
     return json.loads(urllib2.urlopen(url).read())
 
+
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         logging.warning("======= GET STARTED =======")
         logging.warning(self.headers)
+
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
         logging.warning("======= POST STARTED =======")
         logging.warning(self.headers)
+
         length = self.headers.getheader('content-length');
         nbytes = int(length)
         rawdata = self.rfile.read(nbytes)
+
         logging.warning(rawdata)
         logging.warning(type(rawdata))
+
         data = json.loads(rawdata)
+
         logging.warning("======= POST DATA =======")
+        # logging.warning(data)
         
-        # process the request 
+        # process the request
+        logging.warning("======= coflow_process DATA =======")
         coflow_process(data)
 
         # Begin the response
@@ -86,12 +96,13 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
         self.wfile.write('Path: %s\n' % self.path)
         self.wfile.write(rawdata)
+        # logging.warning("======= POST END =======")
 
 
-    
-    # get reveiceved and transmitted bytes of each port in each switch
+# get reveiceved and transmitted bytes of each port in each switch
 def getPortBytes():
-    global portbytes,mylock
+    global portbytes, mylock, DEBUG
+
     host = '192.168.109.214'
     port = 8080
     if len(sys.argv) >=2:
@@ -113,11 +124,14 @@ def getPortBytes():
             else:
                 portbytes[dpid][portnum][0] = rbytes
                 portbytes[dpid][portnum][1] = tbytes
+
+    if DEBUG == 1:
+        print 'getPortBytes()'
     
         
 # calculate average RX and TX during the past interval seconds
 def getPortRate(interval):
-    global portinfo,portbytes,mylock
+    global portinfo, portbytes, mylock, DEBUG
     
     while True:
         getPortBytes()
@@ -134,13 +148,17 @@ def getPortRate(interval):
                     oldrbyte = portinfo[dpid][portnum][2]
                     oldtbyte = portinfo[dpid][portnum][3]
                     portinfo[dpid][portnum] = [(newrbyte-oldrbyte)/interval,(newtbyte-oldtbyte)/interval,newrbyte,newtbyte]
-        
-        #print time.time()
-        #print portinfo
+
+        if DEBUG == 1:
+            print time.time()  # DEBUG INFO
+            print portinfo
+            print '======================================== getPortRate() LOOP'
+
         time.sleep(interval)
 
 
 def flow_table_pusher(flowtables):
+    global DEBUG
     
     host = '192.168.109.214'
     port = 8080
@@ -157,8 +175,12 @@ def flow_table_pusher(flowtables):
         response = urllib2.urlopen(req)
         print response.read()
 
+    if DEBUG == 1:
+        print 'flow_table_pusher(flowtables)'
+
 
 def flow_table_delete(flowtables):
+    global DEBUG
     
     host = '192.168.109.214'
     port = 8080
@@ -176,8 +198,13 @@ def flow_table_delete(flowtables):
         response = urllib2.urlopen(req)
         print response.read()
 
+    if DEBUG == 1:
+        print 'flow_table_delete(flowtables)'
+
 
 def flow_table_info(topology, path, pro):
+    global DEBUG
+
     pathnumstr = ""
     for i in path:
         pathnumstr += str(i)
@@ -191,14 +218,17 @@ def flow_table_info(topology, path, pro):
         preNode = path[i-1]
         curNode = path[i]
         nextNode = path[i+1]
-        print 'preNode, curNode, nextNode:'
-        print preNode, curNode, nextNode
+
+        if DEBUG == 1:
+            print 'preNode, curNode, nextNode:'
+            print preNode, curNode, nextNode
         
         dpid = topology.node[curNode][0]
         inport = topology.adj[preNode][curNode][2]
         outport = topology.adj[curNode][nextNode][1]
-        print 'dpid, inport, outport:'
-        print dpid, inport, outport
+        if DEBUG == 1:
+            print 'dpid, inport, outport:'
+            print dpid, inport, outport
 
         # set metrics in a flow table
         flow = {}
@@ -210,12 +240,26 @@ def flow_table_info(topology, path, pro):
         flow["active"] = "true"
         flow["actions"] = "output=%d" % outport
 
-        print 'flow:'
-        print flow
+        if DEBUG == 1:
+            print 'flow:'
+            print flow
         flowtables.append(flow)
     if pro: 
         flow_table_pusher(flowtables)
+
+    if DEBUG == 1:
+        print 'flow_table_info(topology, path, pro):'
+
     return flowtables
+
+
+def shortest_path():
+    global DEBUG
+
+    print 'Doing nothing for now'
+
+    if DEBUG == 1:
+        print 'shortest_path()'
 
 
 '''
@@ -224,7 +268,7 @@ function:
     handle coflow requests
 '''
 def coflow_process(request):
-    global portinfo,topology
+    global portinfo, topology, DEBUG
 
     if DEBUG == 1:
         logging.warning('=======port information=======')
@@ -239,9 +283,9 @@ def coflow_process(request):
         logging.warning('=======routing topo =======')
         logging.warning(routingTopo)
     
-    # routing
+    # TODO: Routing
     #path = shortest_path()
-    path = [5,3,1,4,7]
+    path = [5, 3, 1, 4, 7]
     
     # provision flow table
     flows = flow_table_info(topology, path, False)
@@ -255,26 +299,33 @@ def coflow_process(request):
 
 
 def main():
-    print('Started: Scheduler')
+    print('Starting Scheduler. Please wait for the listener to get ready ...')
     
     # port RX/TX calculating
     interval = 5
 
+    # Listen port config. Can input host and port as script parameter
     host = '127.0.0.1'
     port = 7999
+    if len(sys.argv) >=2:
+        host = sys.argv[1]
+    if len(sys.argv) >=3:
+        port = sys.argv[2]
     
+    # Monitor the port rate
     t2 = MyThread(getPortRate, [interval], "RX/TX calculating")
     t2.isDaemon()
     t2.setDaemon(True)
     t2.start()
-    
+
+    # Print the debug info if the DEBUG flag is on
     if DEBUG == 1:
         time.sleep(5)
         logging.warning('main')
         logging.warning(portinfo)
     
-    
-    print('Starting server: ' + host + ':' + str(port))
+    # Start listening to the POST message from Hadoop MapReduce
+    print('Listening at ' + host + ':' + str(port))
 
     Handler = ServerHandler
     httpd = SocketServer.TCPServer((host, port), Handler)
