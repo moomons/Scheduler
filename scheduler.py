@@ -86,7 +86,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # logging.warning(data)
         
         # process the request
-        logging.warning("======= coflow_process DATA =======")
+        logging.warning("======= coflow_process Starting =======")
         coflow_process(data)
 
         # Begin the response
@@ -126,7 +126,7 @@ def getPortBytes():
                 portbytes[dpid][portnum][1] = tbytes
 
     if DEBUG == 1:
-        print 'getPortBytes()'
+        print 'That was getPortBytes()'
     
         
 # calculate average RX and TX during the past interval seconds
@@ -152,7 +152,7 @@ def getPortRate(interval):
         if DEBUG == 1:
             print time.time()  # DEBUG INFO
             print portinfo
-            print '======================================== getPortRate() LOOP'
+            print '======================================== That was getPortRate() LOOP'
 
         time.sleep(interval)
 
@@ -176,7 +176,7 @@ def flow_table_pusher(flowtables):
         print response.read()
 
     if DEBUG == 1:
-        print 'flow_table_pusher(flowtables)'
+        print 'That was flow_table_pusher(flowtables)'
 
 
 def flow_table_delete(flowtables):
@@ -199,7 +199,7 @@ def flow_table_delete(flowtables):
         print response.read()
 
     if DEBUG == 1:
-        print 'flow_table_delete(flowtables)'
+        print 'That was flow_table_delete(flowtables)'
 
 
 def flow_table_info(topology, path, pro):
@@ -248,7 +248,7 @@ def flow_table_info(topology, path, pro):
         flow_table_pusher(flowtables)
 
     if DEBUG == 1:
-        print 'flow_table_info(topology, path, pro):'
+        print 'That was flow_table_info(topology, path, pro).'
 
     return flowtables
 
@@ -259,7 +259,7 @@ def shortest_path():
     print 'Doing nothing for now'
 
     if DEBUG == 1:
-        print 'shortest_path()'
+        print 'That was shortest_path()'
 
 
 '''
@@ -296,6 +296,8 @@ def coflow_process(request):
     logging.warning('=======Request process end =======')
     
     logging.warning(requestflow)
+
+    logging.warning("======= That was coflow_process =======")
 
 
 def main():
