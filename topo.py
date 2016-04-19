@@ -11,6 +11,7 @@ class topo(object):
         self.node = defaultdict(lambda:None)
         # switch[i] = [dpid, mac, ipv4, port]
         # the node whose id <= swicthNum is switch node
+        # TODO: the 'port' is not effective, can I remove it?
         self.node[1] = ['00:00:00:1b:cd:03:19:90', '00:1b:cd:03:19:90', '192.168.109.224', '45915']
         self.node[2] = ['00:00:00:1b:cd:03:16:ac', '00:1b:cd:03:16:ac', '192.168.109.225', '56741']
         self.node[3] = ['00:00:00:1b:cd:03:04:64', '00:1b:cd:03:04:64', '192.168.109.214', '42058']
@@ -18,16 +19,16 @@ class topo(object):
 
         # host[i] = [mac, ipv4, ipv6, attachedswicth, switchport, switchId]
         # the node whose id > swicthNum and id <= swicthNum + hostNUm is host node
-        self.node[5] = ['f8:0f:41:f6:68:4e', '10.0.0.212', 'fe80::fa0f:41ff:fef6:684e', '00:00:00:1b:cd:03:04:64',1,3]
-        self.node[6] = ['f8:0f:41:f6:68:4b', '10.0.0.213', 'fe80::fa0f:41ff:fef6:684b', '00:00:00:1b:cd:03:04:64',2,3]
-        self.node[7] = ['f8:0f:41:f6:63:41', '10.0.0.211', 'fe80::fa0f:41ff:fef6:6341', '00:00:00:1b:cd:03:05:94',1,4]
-        self.node[8] = ['f8:0f:41:f4:2a:1b', '10.0.0.201', 'fe80::72e2:84ff:fe05:6767', '00:00:00:1b:cd:03:05:94',2,4]
+        self.node[5] = ['f8:0f:41:f6:68:4e', '10.0.0.212', 'fe80::fa0f:41ff:fef6:684e', '00:00:00:1b:cd:03:04:64', 1, 3]
+        self.node[6] = ['f8:0f:41:f6:68:4b', '10.0.0.213', 'fe80::fa0f:41ff:fef6:684b', '00:00:00:1b:cd:03:04:64', 2, 3]
+        self.node[7] = ['f8:0f:41:f6:63:41', '10.0.0.211', 'fe80::fa0f:41ff:fef6:6341', '00:00:00:1b:cd:03:05:94', 1, 4]
+        self.node[8] = ['f8:0f:41:f4:2a:1b', '10.0.0.201', 'fe80::72e2:84ff:fe05:6767', '00:00:00:1b:cd:03:05:94', 2, 4]
 
         
         
         # topology
         # adjacency[1][2] = [link_id, outport, inport, bandwidth]
-        self.adj = defaultdict(lambda:defaultdict(lambda:None))
+        self.adj = defaultdict(lambda: defaultdict(lambda: None))
         self.defaultband = 1000
         self.adj[1][3] = [1, 1, 3, self.defaultband]
         self.adj[3][1] = [2, 3, 1, self.defaultband]
