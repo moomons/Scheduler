@@ -7,6 +7,12 @@ version 0.10
 Commandline:
 sudo mn --custom ~/Scheduler/ipl44.py --topo=monstopo
 
+Complete commandline with OF10:
+sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk --custom ~/Scheduler/ipl44.py --topo=monstopo --mac
+
+Complete commandline with OF13:
+sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk,protocols=OpenFlow13 --custom ~/Scheduler/ipl44.py --topo=monstopo --mac
+
 Adding the 'topos' dict with a key/value pair to generate our newly defined
 topology enables one to pass in '--topo=monstopo' from the command line.
 
@@ -24,15 +30,15 @@ class monsTopo( Topo ):
         Topo.__init__( self )
 
         # Add hosts and switches
-        ipl201 = self.addHost( 'h1-201' )
-        ipl211 = self.addHost( 'h2-211' )
-        ipl212 = self.addHost( 'h3-212' )
-        ipl213 = self.addHost( 'h4-213' )
+        ipl201 = self.addHost( 'h1' )
+        ipl211 = self.addHost( 'h2' )
+        ipl212 = self.addHost( 'h3' )
+        ipl213 = self.addHost( 'h4' )
 
-        ipl214 = self.addSwitch( 's1-214' )
-        ipl215 = self.addSwitch( 's2-215' )
-        ipl224 = self.addSwitch( 's3-224' )
-        ipl225 = self.addSwitch( 's4-225' )
+        ipl214 = self.addSwitch( 's1' )
+        ipl215 = self.addSwitch( 's2' )
+        ipl224 = self.addSwitch( 's3' )
+        ipl225 = self.addSwitch( 's4' )
 
         # Add links
         self.addLink( ipl214, ipl225, 4, 1 )
