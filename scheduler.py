@@ -40,13 +40,11 @@ requestflow = []
 # port RX/TX calculating
 interval = 5
 
-# Listen port config. Can input host and port as script parameter
-host = '0.0.0.0'
-port = 7999
-if len(sys.argv) >= 2:
-    host = sys.argv[1]
-if len(sys.argv) >= 3:
-    port = sys.argv[2]
+# IP and Port config
+httpserver_host = '0.0.0.0'
+httpserver_port = 7999
+floodlight_host = '192.168.109.204'
+floodlight_port = 8080
 
 
 # multi-threading class
@@ -102,7 +100,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 # get received and transmitted bytes of each port in each switch
 def getPortBytes():
-    URL = 'http://%s:%d/wm/core/switch/all/port/json' % (host, port)
+    URL = 'http://%s:%d/wm/core/switch/all/port/json' % (floodlight_host, floodlight_port)
     # http://192.168.109.214:8080/wm/core/switch/all/port/json
     portstatus = simple_json_get(URL)
     # print portstatus
@@ -195,7 +193,7 @@ def getPortRate(interval):
 
 
 def flow_table_pusher(flowtables):
-    url = 'http://%s:%d/wm/staticflowpusher/json' % (host, port)
+    url = 'http://%s:%d/wm/staticflowpusher/json' % (floodlight_host, floodlight_port)
     
     for flow in flowtables:
         jdata = json.dumps(flow)
@@ -205,7 +203,7 @@ def flow_table_pusher(flowtables):
 
 
 def flow_table_delete(flowtables):
-    url = 'http://%s:%d/wm/staticflowpusher/json' % (host, port)
+    url = 'http://%s:%d/wm/staticflowpusher/json' % (floodlight_host, floodlight_port)
     
     for flow in flowtables:
         jdata = json.dumps(flow)
@@ -328,18 +326,18 @@ def coflow_process(request):
 
 
 def main():
-    print('Starting Scheduler (PyCon). ')
+    print('Starting Scheduler (PyCon) ...')
     
-    # Monitor the port rate
-    t2 = MyThread(getPortRate, [interval], "RX/TX calculating")
+    # Monitor port rate
+    t2 = MyThread(getPortRate, [interval], "RX/TX Calc")
     t2.isDaemon()
     t2.setDaemon(True)
     t2.start()
     
     # Start listening to the POST message from Hadoop MapReduce
-    print('Listening at ' + host + ':' + str(port))
+    print('Listening at ' + httpserver_host + ':' + str(httpserver_port))
 
-    httpd = SocketServer.TCPServer((host, port), ServerHandler)
+    httpd = SocketServer.TCPServer((floodlight_host, floodlight_port), ServerHandler)
     httpd.serve_forever()
 
 
