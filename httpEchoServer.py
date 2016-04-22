@@ -5,32 +5,30 @@ import SocketServer
 import sys
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
-
     def do_GET(self):
         logging.warning("======= GET STARTED =======")
         logging.warning(self.headers)
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
-#        logging.warning("======= POST STARTED =======")
-#        logging.warning(self.headers)
-        length = self.headers.getheader('content-length');
-        nbytes = int(length)
+        # logging.warning("======= POST STARTED =======")
+        # logging.warning(self.headers)
+        nbytes = int(self.headers.getheader('content-length'))
         rawdata = self.rfile.read(nbytes)
         data = json.loads(rawdata)
-#        logging.warning("======= POST DATA =======")
+        logging.warning("======= POST DATA =======")
         logging.warning(data)
         dst = self.client_address
-        print('SENDER (dst): ' + dst[0] + ':' + str(dst[1]))
+        print('Sender of the POST: ' + dst[0] + ':' + str(dst[1]))
 
         # Begin the response
         self.send_response(200)
-        # self.end_headers()
+        self.end_headers()
         # self.wfile.write('Client: %s\n' % str(self.client_address))
         # self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
         # self.wfile.write('Path: %s\n' % self.path)
         # self.wfile.write(rawdata)
-        logging.warning("======= POST END =======")
+        # logging.warning("======= POST END =======")
 
 
 def main():
