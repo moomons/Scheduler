@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
-'''
-Scheduler
 
-main function :
+"""
+Scheduler / Python Controller (PyCon)
+
+Xiahe Liu wrote (2016/03/05):
  1. get topo info
  2. get flow info from ..
  3. get topo status via floodlight rest api
  4. routing 
  5. provision flow table
 
-author : Xiahe Liu
-
-original version date: 2016/03/05
-
+Siyao Meng (mons):
 debugged, modified and added functionality by mons
-'''
+"""
 
 import logging
 import json
@@ -28,18 +26,15 @@ from collections import defaultdict
 import threading
 import os
 
-#from flow import *
-#from routing import *
-#from provision import *
 
-DEBUG = 1
+# Global variables
+DEBUG = 1  # Debug flag
 
-#global portinfo,portbytes,mylock
-portinfo = defaultdict(lambda:defaultdict(lambda:None))
-portbytes = defaultdict(lambda:defaultdict(lambda:None))
-topology = topo.topo()  # 1. get topo info
+portinfo = defaultdict(lambda: defaultdict(lambda: None))
+portbytes = defaultdict(lambda: defaultdict(lambda: None))
+topology = topo.topo()  # Get the topo
 requestflow = []
-#mylock = threading.Lock() 
+# mylock = threading.Lock()
 
 
 # multi-threading class
