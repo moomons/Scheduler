@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from collections import defaultdict
 
 class topo(object):
@@ -135,10 +138,10 @@ class topo(object):
             for j in self.adj[i]:
                 if j <= i:
                     continue
-                swicthId = self.node[i][0]
+                switchId = self.node[i][0]
                 portId = self.adj[i][j][1]
-                print i,j, swicthId, portId
-                URL = "http://%s:%d/wm/statistics/bandwidth/%s/%d/json" % (host,port,swicthId,portId)
+                print i,j, switchId, portId
+                URL = "http://%s:%d/wm/statistics/bandwidth/%s/%d/json" % (host,port,switchId,portId)
                 ### need to process the FL bandwidth output !!!!!!!!!!!!!!!!!!!!!
                 new = self.simple_json_get(URL)
                 
