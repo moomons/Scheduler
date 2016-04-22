@@ -5,13 +5,13 @@ mons topology
 version 0.10
 
 Commandline:
-sudo mn --custom ~/Scheduler/ipl44.py --topo=monstopo
+sudo mn --custom ~/Scheduler/topo-ipl44.py --topo=monstopo
 
 Complete commandline with OF10:
-sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk --custom ~/Scheduler/ipl44.py --topo=monstopo --mac
+sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk --custom ~/Scheduler/topo-ipl44.py --topo=monstopo --mac
 
 Complete commandline with OF13:
-sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk,protocols=OpenFlow13 --custom ~/Scheduler/ipl44.py --topo=monstopo --mac
+sudo mn --controller=remote,ip=192.168.101.1,port=6653 --switch ovsk,protocols=OpenFlow13 --custom ~/Scheduler/topo-ipl44.py --topo=monstopo --mac
 
 Adding the 'topos' dict with a key/value pair to generate our newly defined
 topology enables one to pass in '--topo=monstopo' from the command line.
