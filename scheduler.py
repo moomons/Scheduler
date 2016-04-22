@@ -337,7 +337,7 @@ def main():
     # Start listening to the POST message from Hadoop MapReduce
     print('Listening at ' + httpserver_host + ':' + str(httpserver_port))
 
-    httpd = SocketServer.TCPServer((floodlight_host, floodlight_port), ServerHandler)
+    httpd = SocketServer.TCPServer((httpserver_host, httpserver_port), ServerHandler)
     httpd.serve_forever()
 
 
