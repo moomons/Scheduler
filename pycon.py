@@ -71,7 +71,17 @@ try:
             # pprint.pprint(c)
             if c['portNumber'] == u'local':
                 continue
-            Mat_Links[e][int(c['portNumber'])] = [Mat_Links[e][int(c['portNumber'])], int(c['currSpeed'])/1000000]
+
+            DD = Mat_Links[e][int(c['portNumber'])]
+            if isinstance(DD[0], list):
+                continue
+            else:
+                Mat_Links[e][int(c['portNumber'])] = [DD, int(c['currSpeed'])/1000000]
+                # print DataFrame(Mat_Links).T.fillna(0)
+                Mat_Links[DD[0]][DD[1]] = [Mat_Links[DD[0]][DD[1]], int(c['currSpeed'])/1000000]
+                # print DataFrame(Mat_Links).T.fillna(0)
+                print 'BW applied to symmetric element'
+
             # break
 
         # MARK: REMOVE the [-3:] before running this script in production environments
@@ -80,6 +90,4 @@ except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
 
-fd = DataFrame(Mat_Links).T.fillna(0)
-print fd
-
+print DataFrame(Mat_Links).T.fillna(0)
