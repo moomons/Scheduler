@@ -15,17 +15,17 @@ import urllib2
 # Configurations and global variables
 # IP and Port config
 # floodlight_host = '192.168.109.214'
-floodlight_host = '127.0.0.1'
-floodlight_port = 8080
+Floodlight_IP = '127.0.0.1'
+Floodlight_Port = 8080
 
 
-URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (floodlight_host, floodlight_port)
-URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
-URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (floodlight_host, floodlight_port)
-URL_REST_API_Current_BW = 'http://%s:%d/wm/statistics/bandwidth/all/all/json' % (floodlight_host, floodlight_port)
+URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
+URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (Floodlight_IP, Floodlight_Port)
+URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (Floodlight_IP, Floodlight_Port)
+URL_REST_API_Current_BW = 'http://%s:%d/wm/statistics/bandwidth/all/all/json' % (Floodlight_IP, Floodlight_Port)
 
 
-def json_get_from_url(url):
+def Get_JSON_From_URL(url):
     try:
         result = json.loads(urllib2.urlopen(url).read())
     except urllib2.HTTPError:
@@ -35,14 +35,14 @@ def json_get_from_url(url):
     return result
 
 
-def mat_links_bw_init():
+def Init_Mat_Links_And_BW():
     # Initialization
 
     # Extract switches and nodes links info
     Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 
     # Get links between switches
-    API_Result = json_get_from_url(URL_REST_API_switch_links)
+    API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
     # curl 127.0.0.1:8080/wm/topology/links/json|pjt
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
@@ -56,7 +56,7 @@ def mat_links_bw_init():
         print 'KeyError: Are you sure the FL is up?'
 
     # Get links between hosts
-    API_Result = json_get_from_url(URL_REST_API_host2switch_links)
+    API_Result = Get_JSON_From_URL(URL_REST_API_host2switch_links)
     # curl 127.0.0.1:8080/wm/device/|pjt
     if len(API_Result) == 0:
         print 'Error: No hosts detected. Please init the hosts before running this script. For example: pingall'
@@ -71,7 +71,7 @@ def mat_links_bw_init():
         print 'KeyError: Are you sure the FL is up?'
 
     # Get BW
-    API_Result = json_get_from_url(URL_REST_API_portdesc_BW)
+    API_Result = Get_JSON_From_URL(URL_REST_API_portdesc_BW)
     # curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:

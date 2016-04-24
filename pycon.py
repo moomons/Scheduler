@@ -14,6 +14,6 @@ import pycon_def
 import pprint
 
 
-Mat_Links = pycon_def.mat_links_bw_init()
+Mat_Links = pycon_def.Init_Mat_Links_And_BW()
 
 print DataFrame(Mat_Links).T.fillna(0)
