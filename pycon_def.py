@@ -180,10 +180,12 @@ def Get_Current_Bps_For_Dijkstra():
 
     Mat_BW_Current_DJ = Get_Current_Bps()
 
-    for A in Mat_BW_Cap_MASK:
-        C = Mat_BW_Cap_MASK[A]
-        for B in C:
-            if C[B] > 0.0:
-                Mat_BW_Current_DJ[A][B] += 0.1
+    for L1 in Mat_BW_Cap_MASK:
+        L2 = Mat_BW_Cap_MASK[L1]
+        for L3 in L2:
+            if L2[L3] > 0.0:
+                Mat_BW_Current_DJ[L1][L3] += 0.1
 
     return Mat_BW_Current_DJ
+
+
