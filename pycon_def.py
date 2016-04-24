@@ -14,6 +14,11 @@ import pprint
 from pandas import *
 from datetime import datetime, timedelta
 import threading
+import networkx as nx
+import numpy as np
+
+
+BEGIN = 0  # -3 if you want compact debug output, but this WILL impact the dijkstra
 
 
 # Configurations and global variables
@@ -69,15 +74,15 @@ def Init_Mat_Links_And_BW():
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
-            Mat_Links[EachElem['src-switch'][-3:]][EachElem['src-port']] = \
-                [EachElem['dst-switch'][-3:], EachElem['dst-port']]
-            Mat_Links[EachElem['dst-switch'][-3:]][EachElem['dst-port']] = \
-                [EachElem['src-switch'][-3:], EachElem['src-port']]
-            Mat_SWHosts[EachElem['src-switch'][-3:]][EachElem['dst-switch'][-3:]] = \
+            Mat_Links[EachElem['src-switch'][BEGIN:]][EachElem['src-port']] = \
+                [EachElem['dst-switch'][BEGIN:], EachElem['dst-port']]
+            Mat_Links[EachElem['dst-switch'][BEGIN:]][EachElem['dst-port']] = \
+                [EachElem['src-switch'][BEGIN:], EachElem['src-port']]
+            Mat_SWHosts[EachElem['src-switch'][BEGIN:]][EachElem['dst-switch'][BEGIN:]] = \
                 [EachElem['src-port'], EachElem['dst-port']]
-            Mat_SWHosts[EachElem['dst-switch'][-3:]][EachElem['src-switch'][-3:]] = \
+            Mat_SWHosts[EachElem['dst-switch'][BEGIN:]][EachElem['src-switch'][BEGIN:]] = \
                 [EachElem['dst-port'], EachElem['src-port']]
-            # MARK: REMOVE [-3:] before using this script in production environments
+            # MARK: REMOVE [BEGIN:] before using this script in production environments
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
@@ -94,13 +99,13 @@ def Init_Mat_Links_And_BW():
                 print 'Error: Host IPv4 address not ready yet. Please wait a while after pingall.'
                 exit(-1)
             InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
-            Mat_Links[InEachE['switchDPID'][-3:]][InEachE['port']] = \
-                [EachElem['ipv4'][0][-3:], 0]
-            Mat_Links[EachElem['ipv4'][0][-3:]][0] = \
-                [InEachE['switchDPID'][-3:], InEachE['port']]
-            Mat_SWHosts[InEachE['switchDPID'][-3:]][EachElem['ipv4'][0][-3:]] = \
+            Mat_Links[InEachE['switchDPID'][BEGIN:]][InEachE['port']] = \
+                [EachElem['ipv4'][0][BEGIN:], 0]
+            Mat_Links[EachElem['ipv4'][0][BEGIN:]][0] = \
+                [InEachE['switchDPID'][BEGIN:], InEachE['port']]
+            Mat_SWHosts[InEachE['switchDPID'][BEGIN:]][EachElem['ipv4'][0][BEGIN:]] = \
                 [InEachE['port'], 0]
-            Mat_SWHosts[EachElem['ipv4'][0][-3:]][InEachE['switchDPID'][-3:]] = \
+            Mat_SWHosts[EachElem['ipv4'][0][BEGIN:]][InEachE['switchDPID'][BEGIN:]] = \
                 [0, InEachE['port']]
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
@@ -112,12 +117,15 @@ def Init_Mat_Links_And_BW():
     try:
         for EachElem in API_Result:
             InEachE = API_Result[EachElem]['portDesc']
-            EachElem = EachElem[-3:]
+            EachElem = EachElem[BEGIN:]
 
             for InInEachE in InEachE:
                 if InInEachE['portNumber'] == u'local':
                     continue
                 CurrVal = Mat_Links[EachElem][int(InInEachE['portNumber'])]
+                if CurrVal is None:
+                    print 'Error: Host not found. Please pingall. Hosts down for long time inactivity'
+                    exit(-1)
                 if isinstance(CurrVal[0], list):
                     continue
                 else:
@@ -158,7 +166,7 @@ def Get_Current_Bps():
 
             Mat_BW_Curr_LastUpd = datetime.strptime(EachElem['updated'], '%a %b %d %H:%M:%S %Z %Y')
 
-            src_machine = EachElem['dpid'][-3:]  # Source machine
+            src_machine = EachElem['dpid'][BEGIN:]  # Source machine
             src_port = int(EachElem['port'])  # Source port
             Mbps_out = int(EachElem['bits-per-second-tx']) / 1000000  # Egress
             Mbps_in = int(EachElem['bits-per-second-rx']) / 1000000  # Ingress
@@ -175,17 +183,44 @@ def Get_Current_Bps():
     return Mat_BW_Current
 
 
-def Get_Current_Bps_For_Dijkstra():
-    """Difference: Will add 0.1 to non-zero links for shortest path algo"""
+def Get_Dijkstra_Path(start, end):
+    """Difference: Will add some value to non-zero links for shortest path algo"""
 
-    Mat_BW_Current_DJ = Get_Current_Bps()
+    Mat_BW_Current = Get_Current_Bps()
+
+    L = len(Mat_BW_Current)
+    Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(L, L))
+    List_SwitchAndHosts = ["" for x in range(L)]
+    Counter = 0
+    Rev = defaultdict(lambda: 0)
+
+    for L1 in Mat_BW_Cap_MASK:
+        List_SwitchAndHosts[Counter] = L1
+        Rev[L1] = Counter
+        Counter += 1
+
+    # Check if the start and end is in the list
+    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts):
+        print 'Error: Invalid start or end point.'
+        return []
 
     for L1 in Mat_BW_Cap_MASK:
         L2 = Mat_BW_Cap_MASK[L1]
         for L3 in L2:
             if L2[L3] > 0.0:
-                Mat_BW_Current_DJ[L1][L3] += 0.1
+                Mat_BW_Curr_DJ_Numpy[Rev[L1]][Rev[L3]] = Mat_BW_Current[L1][L3] + 1.0
+                # Mat_BW_Current[L1][L3] += 1.0
 
-    return Mat_BW_Current_DJ
+    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
+    path_numerical = nx.dijkstra_path(G, Rev[start], Rev[end])
+
+    path = ['' for x in range(len(path_numerical))]
+    Counter = 0
+    for E in path_numerical:
+        path[Counter] =  List_SwitchAndHosts[E]
+        Counter += 1
+
+    # return Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts
+    return path
 
 
