@@ -46,6 +46,8 @@ class StaticFlowPusher(object):
 
 
 def PushFlowMod(route, att):
+    """ Send Flow Mod Message to switches, one by one """
+
     global FlowMod_n
     pusher = StaticFlowPusher(Floodlight_IP)  # Controller IP
 
@@ -60,7 +62,7 @@ def PushFlowMod(route, att):
                 "cookie": "0",
                 # "priority": "32767",
                 "active": "true",
-                "idle_timeout": "5",
+                "idle_timeout": "50",  # DEBUG 50. Release 5
                 "in_port": Mat_SWHosts[INDEX-1][INDEX][1],
                 "eth_type": "0x0800",  # IPv4
                 "ip_proto": "6",  # TCP
@@ -71,6 +73,7 @@ def PushFlowMod(route, att):
                 "tcp_dst": att['tcp_dst'],
                 "actions": "output=" + str(Mat_SWHosts[INDEX][INDEX+1][0])
                 }
+        logger.debug(flow1)  # LOG
         pusher.set(flow1)
 
 # Ref: https://floodlight.atlassian.net/wiki/pages/viewpage.action?pageId=1343518

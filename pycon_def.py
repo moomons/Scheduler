@@ -1,10 +1,13 @@
 """
+
 PyCon
-def and config
+
+Functions and configs
 
 Stores most global settings and functions
 
 by mons
+
 """
 
 from collections import defaultdict
@@ -21,37 +24,30 @@ from pycon_cfg import *
 
 # LOGGING
 import logging
-
-# create logger
-logger = logging.getLogger('PyCon')
+logger = logging.getLogger('PyCon')  # create logger
 logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-ch = logging.StreamHandler()
+ch = logging.StreamHandler()  # create console handler and set level to debug
 ch.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# add formatter to ch
-ch.setFormatter(formatter)
-
-# add ch to logger
-logger.addHandler(ch)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')  # create formatter
+ch.setFormatter(formatter)  # add formatter to ch
+logger.addHandler(ch)  # add ch to logger
 
 
-BEGIN = 0  # -3 if you want compact debug output, but this WILL impact the dijkstra
+BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However beware of duplicates
 
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/topology/links/json|pjt
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/device/|pjt
 URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
 URL_REST_API_Current_BW = 'http://%s:%d/wm/statistics/bandwidth/all/all/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/statistics/bandwidth/all/all/json|pjt
 URL_REST_API_Flow_List = 'http://%s:%d/wm/staticflowpusher/list/all/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/staticflowpusher/list/all/json|pjt
 URL_REST_API_Flow_Mod = 'http://%s:%d/wm/staticflowpusher/json' % (Floodlight_IP, Floodlight_Port)
-# curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"flow-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
+# curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"test-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
 URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
 
@@ -72,20 +68,18 @@ def Get_JSON_From_URL(url):
         result = json.loads(urllib2.urlopen(url).read())
     except urllib2.HTTPError:
         result = ""
-        print 'HTTPError'
+        logger.error('Failed to GET REST API. \
+            Please make sure that FL controller is up and running. \
+            And you have set the correct IP and Port.')
 
     return result
 
 
 def Init_Mat_Links_And_BW():
-    # Initialization
-
-    # Extract switches and nodes links info
-    # Now become global
+    """ Initialize Links and Bandwidth Matrices """
 
     # Get links between switches
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
-    # curl 127.0.0.1:8080/wm/topology/links/json|pjt
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
@@ -97,21 +91,20 @@ def Init_Mat_Links_And_BW():
                 [EachElem['src-port'], EachElem['dst-port']]
             Mat_SWHosts[EachElem['dst-switch'][BEGIN:]][EachElem['src-switch'][BEGIN:]] = \
                 [EachElem['dst-port'], EachElem['src-port']]
-            # MARK: REMOVE [BEGIN:] before using this script in production environments
     except KeyError:
-        print 'KeyError: Are you sure the FL is up?'
+        logger.error('KeyError: Are you sure the FL is up?')
+        exit(-1)
 
     # Get links between hosts
     API_Result = Get_JSON_From_URL(URL_REST_API_host2switch_links)
-    # curl 127.0.0.1:8080/wm/device/|pjt
     if len(API_Result) == 0:
-        print 'Error: No hosts detected. Please init the hosts before running this script. For example: pingall'
+        logger.error('Error: No hosts detected. Please init the hosts before running this script. For example: pingall')
         exit(-1)
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
             if len(EachElem['ipv4'][0]) == 0:
-                print 'Error: Host IPv4 address not ready yet. Please wait a while after pingall.'
+                logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
                 exit(-1)
             InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
             Mat_Links[InEachE['switchDPID'][BEGIN:]][InEachE['port']] = \
@@ -123,11 +116,11 @@ def Init_Mat_Links_And_BW():
             Mat_SWHosts[EachElem['ipv4'][0][BEGIN:]][InEachE['switchDPID'][BEGIN:]] = \
                 [0, InEachE['port']]
     except KeyError:
-        print 'KeyError: Are you sure the FL is up?'
+        logger.error('KeyError: Are you sure the FL is up?')
+        exit(-1)
 
     # Get BW
     API_Result = Get_JSON_From_URL(URL_REST_API_portdesc_BW)
-    # curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
@@ -139,33 +132,35 @@ def Init_Mat_Links_And_BW():
                     continue
                 CurrVal = Mat_Links[EachElem][int(InInEachE['portNumber'])]
                 if CurrVal is None:
-                    print 'Error: Host not found. Please pingall. Hosts down for long time inactivity'
+                    logger.error('Error: Host not found. Please pingall. Hosts down for long time inactivity')
                     exit(-1)
                 if isinstance(CurrVal[0], list):
                     continue
                 else:
                     Speed_In_Mbps = int(InInEachE['currSpeed']) / 1000
+                    # Mat_Links[SW/Host A MAC/IP][SW/Host A Port] = [SW/Host B MAC/IP, SW/Host B Port]
                     Mat_Links[EachElem][int(InInEachE['portNumber'])] = \
                         [CurrVal, Speed_In_Mbps]
                     Mat_Links[CurrVal[0]][CurrVal[1]] = \
                         [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Mbps]
+                    # Mat_BW_Cap[SW/Host A MAC/IP][SW/Host B MAC/IP] = Speed
                     Mat_BW_Cap[EachElem][CurrVal[0]] = Speed_In_Mbps
                     Mat_BW_Cap[CurrVal[0]][EachElem] = Speed_In_Mbps
                     Mat_BW_Cap_MASK[EachElem][CurrVal[0]] = 1.0
                     Mat_BW_Cap_MASK[CurrVal[0]][EachElem] = 1.0
     except KeyError:
-        print 'KeyError: Are you sure the FL is up?'
+        logger.error('KeyError: Are you sure the FL is up?')
+        exit(-1)
 
     return Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK
 
 
 def Get_Current_Mbps():
-    """Get Current Mbps"""
+    """ Get Current Speed """
 
     global Mat_BW_Curr_LastUpd
-    if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:  # A method to compare date
-        # if it hasn't been more than 2s before last updated, just return the old dict
-        # print 'Old one :)'
+    # if last updated in less than 2s, just return the old dict
+    if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:
         return Mat_BW_Current
 
     Lock_Get_Current_Bps.acquire()  # Lock to sync
@@ -191,16 +186,17 @@ def Get_Current_Mbps():
             Mat_BW_Current[src_machine][dst_machine] = Mbps_out
             Mat_BW_Current[dst_machine][src_machine] = Mbps_in
     except KeyError:
-        print 'KeyError: Are you sure the FL is up?'
+        logger.error('KeyError: Are you sure the FL is up?')
+        exit(-1)
 
     Lock_Get_Current_Bps.release()  # Unlock
 
-    # TODO: Should log this to file, controlled by a flag
+    # TODO: Should log the speed matrix to a file or something
     return Mat_BW_Current
 
 
 def Get_Dijkstra_Path(start, end):
-    """Difference: Will add some value to non-zero links for shortest path algo"""
+    """ Use Dijkstra to calculate a route. The weight is current bw. """
 
     Mat_BW_Current = Get_Current_Mbps()
 
@@ -217,7 +213,7 @@ def Get_Dijkstra_Path(start, end):
 
     # Check if the start and end is in the list
     if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
-        print 'Error in Dijkstra: Invalid start or end point.'
+        logger.error('Error in Dijkstra: Invalid start or end point.')
         return []
 
     for L1 in Mat_BW_Cap_MASK:

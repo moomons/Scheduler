@@ -2,22 +2,21 @@
 # coding: utf-8
 
 """
+
 PyCon
 
-Code completely rewritten by mons in a modern and efficient manner
+An OpenFlow-based Hadoop MapReduce monitor and network controller
+Completely rewritten by mons. Works with modified Floodlight and Hadoop MR
+
 """
 
 from ServerHandler import *
 
 
 def main():
-    print('PyCon: An OpenFlow-based Hadoop MapReduce monitor and network controller.\n' +
-          'Completely rewritten by mons. Works with modified Floodlight and Hadoop MR.\n\n')
+    logger.info('Starting up PyCon.')
 
-    logger.info('Initializing ...')
-
-    exit(0)
-
+    logger.info('Initializing Links and Bandwidth Matrices...')
     Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
 
     # print 'Matrix of Network Links'
@@ -37,13 +36,13 @@ def main():
     # print DataFrame(Mat_BW_Current).T.fillna(0)
 
     # Start listening to the POST message from Hadoop MapReduce and FL
-    print('Listening at ' + Server_IP + ':' + str(Server_Port))
+    logger.info('HTTP Server listening at ' + Server_IP + ':' + str(Server_Port))
     httpd = SocketServer.TCPServer((Server_IP, Server_Port), ServerHandler)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         # Can do something here
-        print 'Quitting.'
+        logger.info('Quitting.')
 
 
 if __name__ == '__main__':
