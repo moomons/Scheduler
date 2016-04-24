@@ -4,6 +4,8 @@ import logging
 import json
 import SimpleHTTPServer
 import SocketServer
+from pycon_def import *
+from StaticFlowPusher import *
 
 
 Server_IP = '0.0.0.0'
@@ -45,5 +47,18 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 def Process(data):
+    # Check if data content already exist in Dict_RcvdData (by 'attempt'):
+    # if not exist, write; if exist, write incomplete info
+
+    # if info complete, calc route and call StaticFlowPusher to perform flow mod
+
+    # Current Bandwidth weighted Dijkstra
+    # print Get_Dijkstra_Path('10.0.0.1', '10.0.0.4')
+
     print 'Hi'
+
+
+def IsRcvdDataComplete():
+
+    return True
 

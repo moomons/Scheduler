@@ -38,12 +38,13 @@ requestflow = []
 # mylock = threading.Lock()
 
 # port RX/TX calculating
-interval = 5
+interval = 2
 
 # IP and Port config
 httpserver_host = '0.0.0.0'
 httpserver_port = 7999
-floodlight_host = '192.168.109.214'
+# floodlight_host = '192.168.109.214'
+floodlight_host = '127.0.0.1'
 floodlight_port = 8080
 
 
@@ -116,48 +117,7 @@ def getPortBytes():
                 portbytes[dpid][portnum][0] = rbytes
                 portbytes[dpid][portnum][1] = tbytes
 
-    # 127.0.0.1 - - [13/Apr/2016 08:40:33] "POST / HTTP/1.1" 200 -
-    # That was getPortBytes()
-    # defaultdict(<function <lambda> at 0x7f480f0fbed8>,
-    # {
-    # 	u'00:00:00:1b:cd:03:16:ac': defaultdict(<function <lambda> at 0x7f480f0ca668>,
-    # 	{
-    # 		u'1': [0L, 0L, 182980999213L, 315577511213L],
-    #       Example format: PortNum: Receive Bps, Trans Bps, R Bytes, T Bytes
-    # 		u'5': [32894L, 0L, 9922423548L, 7462744L],
-    # 		u'3': [0L, 0L, 121125518035L, 377289906541L],
-    # 		u'local': [0L, 0L, 108928339L, 498342097406L],
-    # 		u'4': [0L, 32841L, 55061959080L, 453305743828L]
-    # 	}),
-    # 	u'00:00:00:1b:cd:03:05:94': defaultdict(<function <lambda> at 0x7f480f0ca6e0>,
-    # 	{
-    # 		u'1': [0L, 32826L, 554291L, 10102144977L],
-    # 		u'3': [32841L, 0L, 9961681489L, 95952068L],
-    # 		u'2': [0L, 32826L, 390481L, 10102163968L],
-    # 		u'local': [0L, 32826L, 72662912L, 10046660225L],
-    # 		u'4': [0L, 32826L, 334532553L, 9855451014L]
-    # 	}),
-    # 	u'00:00:00:1b:cd:03:19:90': defaultdict(<function <lambda> at 0x7f480f0ca758>,
-    # 	{
-    # 		u'1': [32841L, 0L, 54776216890L, 407909102422L],
-    # 		u'3': [0L, 0L, 116309512495L, 336494848509L],
-    # 		u'2': [89L, 32841L, 168353582735L, 294492715754L],
-    # 		u'local': [0L, 0L, 650170L, 452781469873L],
-    # 		u'4': [0L, 0L, 123438985993L, 329386722307L]
-    # 	}),
-    # 	u'00:00:00:1b:cd:03:04:64': defaultdict(<function <lambda> at 0x7f480f0ca7d0>,
-    # 	{
-    # 		u'1': [1912425L, 73391L, 100272247644L, 47443107881L],
-    # 		u'3': [0L, 32841L, 1866382734L, 11755447892L],
-    # 		u'2': [40550L, 1945266L, 33825866102L, 113887583978L],
-    # 		u'local': [0L, 32841L, 145213092L, 13473584317L],
-    # 		u'4': [32847L, 0L, 11902659703L, 1903618697L]
-    # 	})
-    # })
-    # ======================================== That was getPortRate() LOOP
-    # That was getPortBytes()
-    
-        
+
 # calculate average RX and TX during the past interval seconds
 def getPortRate(interval):
     while True:

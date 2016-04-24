@@ -7,8 +7,6 @@ PyCon
 Code completely rewritten by mons in a modern and efficient manner
 """
 
-from pycon_def import *
-from StaticFlowPusher import *
 from ServerHandler import *
 
 
@@ -42,10 +40,6 @@ def main():
         # Can do something here
         print 'Quitting.'
 
-    # Current Bandwidth weighted Dijkstra
-    # print Get_Dijkstra_Path('10.0.0.1', '10.0.0.4')
-
-    # StaticFlowPusherTest()
 
 if __name__ == '__main__':
     main()
