@@ -24,6 +24,13 @@ URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (Floodlight_IP, Floodlight_Port)
 URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (Floodlight_IP, Floodlight_Port)
 URL_REST_API_Current_BW = 'http://%s:%d/wm/statistics/bandwidth/all/all/json' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/statistics/bandwidth/all/all/json|pjt
+URL_REST_API_Flow_List = 'http://%s:%d/wm/staticflowpusher/list/all/json' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/staticflowpusher/list/all/json|pjt
+URL_REST_API_Flow_Mod = 'http://%s:%d/wm/staticflowpusher/json' % (Floodlight_IP, Floodlight_Port)
+# curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"flow-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
+URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (Floodlight_IP, Floodlight_Port)
+# curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
 
 
 def Get_JSON_From_URL(url):
@@ -42,7 +49,7 @@ def Init_Mat_Links_And_BW():
     # Extract switches and nodes links info
     Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
     Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
-    Mat_BW = defaultdict(lambda: defaultdict(lambda: None))
+    Mat_BW_Cap = defaultdict(lambda: defaultdict(lambda: None))
 
     # Get links between switches
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
@@ -86,8 +93,6 @@ def Init_Mat_Links_And_BW():
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
-    # Mat_BW = Mat_SWHosts  # Not necessary
-
     # Get BW
     API_Result = Get_JSON_From_URL(URL_REST_API_portdesc_BW)
     # curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
@@ -109,10 +114,17 @@ def Init_Mat_Links_And_BW():
                         [CurrVal, Speed_In_Gbps]
                     Mat_Links[CurrVal[0]][CurrVal[1]] = \
                         [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Gbps]
-                    Mat_BW[EachElem][CurrVal[0]] = Speed_In_Gbps
-                    Mat_BW[CurrVal[0]][EachElem] = Speed_In_Gbps
+                    Mat_BW_Cap[EachElem][CurrVal[0]] = Speed_In_Gbps
+                    Mat_BW_Cap[CurrVal[0]][EachElem] = Speed_In_Gbps
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
-    return Mat_Links, Mat_SWHosts, Mat_BW
+    return Mat_Links, Mat_SWHosts, Mat_BW_Cap
+
+
+def Get_Current_Bps(Mat_Links):
+    Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
+
+    # URL_REST_API_Current_BW
+    print 'Get Bps'
 
