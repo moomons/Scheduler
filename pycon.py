@@ -34,9 +34,9 @@ API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
 try:
     for e in API_Result:
         # pprint.pprint(e)
-        Mat_Links[e['src-switch'][-5:]][e['dst-switch'][-5:]] = [e['src-port'], e['dst-port']]
-        Mat_Links[e['dst-switch'][-5:]][e['src-switch'][-5:]] = [e['dst-port'], e['src-port']]
-        # MARK: REMOVE the [-5:] before running this script in production environments
+        Mat_Links[e['src-switch'][-3:]][e['src-port']] = [e['dst-switch'][-3:], e['dst-port']]
+        Mat_Links[e['dst-switch'][-3:]][e['dst-port']] = [e['src-switch'][-3:], e['src-port']]
+        # MARK: REMOVE the [-3:] before running this script in production environments
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
@@ -51,9 +51,9 @@ try:
     for e in API_Result:
         # pprint.pprint(e)
         d = e['attachmentPoint'][0]  # Extract the dict inside the list
-        Mat_Links[d['switchDPID'][-5:]][e['ipv4'][0]] = [d['port'], 0]
-        Mat_Links[e['ipv4'][0]][d['switchDPID'][-5:]] = [0, d['port']]
-        # MARK: REMOVE the [-5:] before running this script in production environments
+        Mat_Links[d['switchDPID'][-3:]][d['port']] = [e['ipv4'][0][-3:], 0]
+        Mat_Links[e['ipv4'][0][-3:]][0] = [d['switchDPID'][-3:], d['port']]
+        # MARK: REMOVE the [-3:] before running this script in production environments
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
@@ -63,14 +63,19 @@ API_Result = pycon_def.json_get_from_url(URL_REST_API_portdesc_BW)
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
 try:
     for e in API_Result:
-        # pprint.pprint(e)
-        pprint.pprint(API_Result[e])
+        d = API_Result[e]['portDesc']
+        # pprint.pprint(d)
+        e = e[-3:]
 
-        # d = e['attachmentPoint'][0]  # Extract the dict inside the list
-        # Mat_Links[d['switchDPID'][-5:]][e['ipv4'][0]] = [d['port'], 0]
-        # Mat_Links[e['ipv4'][0]][d['switchDPID'][-5:]] = [0, d['port']]
-        # MARK: REMOVE the [-5:] before running this script in production environments
-        break
+        for c in d:
+            # pprint.pprint(c)
+            if c['portNumber'] == u'local':
+                continue
+            Mat_Links[e][int(c['portNumber'])] = [Mat_Links[e][int(c['portNumber'])], int(c['currSpeed'])/1000000]
+            # break
+
+        # MARK: REMOVE the [-3:] before running this script in production environments
+        # break
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
