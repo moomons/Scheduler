@@ -33,10 +33,6 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         logger.info("Got POST data:")
         logger.info(data)
 
-        # process the request
-        logger.info("Processing data:")
-        Process(data, self.client_address)
-
         # Begin the response
         self.send_response(200)
         self.end_headers()
@@ -44,7 +40,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # self.wfile.write('User-agent: %s\n' % str(self.headers['user-agent']))
         # self.wfile.write('Path: %s\n' % self.path)
         # self.wfile.write(rawdata)
-        # logging.warning("======= POST END =======")
+
+        # process the request
+        logger.info("Processing data:")
+        Process(data, self.client_address)
 
 
 def Process(data, sender_client_address):
@@ -58,7 +57,7 @@ def Process(data, sender_client_address):
             Dict_RcvdData[attempt]['reduce'] = data['para_reduce']
             Dict_RcvdData[attempt]['Timestamp_RcvdFL'] = datetime.now()  # Log
             if Dict_RcvdData[attempt]['tcp_dst'] is not None:
-                PerformRouting(attempt)
+                PerformRouting(Dict_RcvdData[attempt])
     else:
         # The message is from the Hadoop MR
         attempt = data['coflowId']
@@ -72,7 +71,7 @@ def Process(data, sender_client_address):
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
-            PerformRouting(attempt)
+            PerformRouting(Dict_RcvdData[attempt])
 
     logging.info('Data processing done.')
 
@@ -81,11 +80,21 @@ def Process(data, sender_client_address):
 #     return True
 
 
-def PerformRouting(attempt):
+def PerformRouting(att):
     """ Finally, Do the Routing! """
+    logger.info(att)  # Log
 
-    # Current Bandwidth weighted Dijkstra
-    # print Get_Dijkstra_Path('10.0.0.1', '10.0.0.4')
+    # MARK: Different scheduling algorithm will result in different route!
+    route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
 
-    return 1
+    logging.info('Route: ' + str(route))
+    if len(route) < 2:
+        logging.error('Routing failed. Please check FL. And perform pingall.')
+        return -1
 
+    return PerformFlowMod(route)
+
+
+def PerformFlowMod(route):
+
+    return 0

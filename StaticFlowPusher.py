@@ -44,11 +44,11 @@ class StaticFlowPusher(object):
 def StaticFlowPusherTest():
     pusher = StaticFlowPusher('127.0.0.1')  # Controller IP
 
-    n = 0  # make this variable global
+    FlowMod_n = 0  # make this variable global
 
-    n += 3
+    FlowMod_n += 3
     flow1 = {
-        "name": "flow-mod-" + str(n),
+        "name": "flow-mod-" + str(FlowMod_n),
         "switch": "00:00:00:00:00:00:00:02",
         "cookie": "0",
         # "priority": "32767",

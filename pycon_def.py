@@ -223,7 +223,7 @@ def Get_Dijkstra_Path(start, end):
 
     # Check if the start and end is in the list
     if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts):
-        print 'Error: Invalid start or end point.'
+        print 'Error in Dijkstra: Invalid start or end point.'
         return []
 
     for L1 in Mat_BW_Cap_MASK:
