@@ -17,17 +17,17 @@ Dict_RcvdData = defaultdict(lambda: defaultdict(lambda: None))
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
-        logging.info("Starting GET.")
-        logging.info(self.headers)
+        logger.info("do_GET")
+        logger.info(self.headers)
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
-        # logging.warning("======= POST STARTED =======")
-        # logging.warning(self.headers)
+        logger.info("do_POST")
+        # logger.info(self.headers)
         nbytes = int(self.headers.getheader('content-length'))
         rawdata = self.rfile.read(nbytes)
-        # logging.warning(rawdata)
-        # logging.warning(type(rawdata))
+        # logger.info(rawdata)
+        # logger.info(type(rawdata))
 
         data = json.loads(rawdata)
         logger.info("Got POST data:")
