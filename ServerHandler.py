@@ -73,7 +73,7 @@ def Process(data, sender_client_address):
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
             PerformRouting(Dict_RcvdData[attempt])
 
-    logging.info('Data processing done.')
+    logger.info('Data processing done.')
 
 
 # def IsRcvdDataComplete():
@@ -87,9 +87,9 @@ def PerformRouting(att):
     # MARK: Different scheduling algorithm will result in different route!
     route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
 
-    logging.info('Route: ' + str(route))
+    logger.info('Route: ' + str(route))
     if len(route) < 2:
-        logging.error('Routing failed. Please check FL. And perform pingall.')
+        logger.error('Routing failed. Please check FL. And perform pingall.')
         return -1
 
     return PerformFlowMod(route)
