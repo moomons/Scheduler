@@ -25,6 +25,7 @@ Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (floodlight_host, floodlight_port)
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
+URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (floodlight_host, floodlight_port)
 
 
 API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
@@ -53,6 +54,23 @@ try:
         Mat_Links[d['switchDPID'][-5:]][e['ipv4'][0]] = [d['port'], 0]
         Mat_Links[e['ipv4'][0]][d['switchDPID'][-5:]] = [0, d['port']]
         # MARK: REMOVE the [-5:] before running this script in production environments
+except KeyError:
+    print 'KeyError: Are you sure the FL is up?'
+
+
+API_Result = pycon_def.json_get_from_url(URL_REST_API_portdesc_BW)
+# curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
+# print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
+try:
+    for e in API_Result:
+        # pprint.pprint(e)
+        pprint.pprint(API_Result[e])
+
+        # d = e['attachmentPoint'][0]  # Extract the dict inside the list
+        # Mat_Links[d['switchDPID'][-5:]][e['ipv4'][0]] = [d['port'], 0]
+        # Mat_Links[e['ipv4'][0]][d['switchDPID'][-5:]] = [0, d['port']]
+        # MARK: REMOVE the [-5:] before running this script in production environments
+        break
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
