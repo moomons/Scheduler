@@ -33,7 +33,6 @@ API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
 try:
     for EachElem in API_Result:
-        # pprint.pprint(e)
         Mat_Links[EachElem['src-switch'][-3:]][EachElem['src-port']] = [EachElem['dst-switch'][-3:], EachElem['dst-port']]
         Mat_Links[EachElem['dst-switch'][-3:]][EachElem['dst-port']] = [EachElem['src-switch'][-3:], EachElem['src-port']]
         # MARK: REMOVE the [-3:] before running this script in production environments
@@ -49,11 +48,9 @@ if len(API_Result) == 0:
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
 try:
     for EachElem in API_Result:
-        # pprint.pprint(e)
         InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
         Mat_Links[InEachE['switchDPID'][-3:]][InEachE['port']] = [EachElem['ipv4'][0][-3:], 0]
         Mat_Links[EachElem['ipv4'][0][-3:]][0] = [InEachE['switchDPID'][-3:], InEachE['port']]
-        # MARK: REMOVE the [-3:] before running this script in production environments
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
@@ -64,28 +61,19 @@ API_Result = pycon_def.json_get_from_url(URL_REST_API_portdesc_BW)
 try:
     for EachElem in API_Result:
         InEachE = API_Result[EachElem]['portDesc']
-        # pprint.pprint(d)
         EachElem = EachElem[-3:]
 
         for InInEachE in InEachE:
-            # pprint.pprint(c)
             if InInEachE['portNumber'] == u'local':
                 continue
-
-            DD = Mat_Links[EachElem][int(InInEachE['portNumber'])]
-            if isinstance(DD[0], list):
+            CurrVal = Mat_Links[EachElem][int(InInEachE['portNumber'])]
+            if isinstance(CurrVal[0], list):
                 continue
             else:
-                Mat_Links[EachElem][int(InInEachE['portNumber'])] = [DD, int(InInEachE['currSpeed']) / 1000000]
+                Mat_Links[EachElem][int(InInEachE['portNumber'])] = [CurrVal, int(InInEachE['currSpeed']) / 1000000]
                 # print DataFrame(Mat_Links).T.fillna(0)
-                Mat_Links[DD[0]][DD[1]] = [Mat_Links[DD[0]][DD[1]], int(InInEachE['currSpeed']) / 1000000]
+                Mat_Links[CurrVal[0]][CurrVal[1]] = [Mat_Links[CurrVal[0]][CurrVal[1]], int(InInEachE['currSpeed']) / 1000000]
                 # print DataFrame(Mat_Links).T.fillna(0)
-                # print 'BW applied to symmetric element'
-
-            # break
-
-        # MARK: REMOVE the [-3:] before running this script in production environments
-        # break
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
