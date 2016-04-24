@@ -63,8 +63,8 @@ curl 127.0.0.1:8080/wm/device/|pjt
         ],
 
 3. 拿有效带宽
-curl 127.0.0.1:8080/wm/core/switch/00:00:00:00:00:00:00:01/port-desc/json|pjt
-回复：
+curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
+回复（某一个switch）：
 {
     "portDesc": [
         {
