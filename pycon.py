@@ -10,10 +10,10 @@ Code completely rewritten by mons in a modern and efficient manner
 from collections import defaultdict
 from pandas import *
 import json
-import pycon_def
 import pprint
+from pycon_def import *
 
 
-Mat_Links = pycon_def.Init_Mat_Links_And_BW()
+Mat_Links, Mat_SWHosts, Mat_BW = Init_Mat_Links_And_BW()
 
-print DataFrame(Mat_Links).T.fillna(0)
+print DataFrame(Mat_BW).T.fillna(0)

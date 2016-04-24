@@ -10,6 +10,7 @@ by mons
 from collections import defaultdict
 import json
 import urllib2
+from pandas import *
 
 
 # Configurations and global variables
@@ -40,6 +41,8 @@ def Init_Mat_Links_And_BW():
 
     # Extract switches and nodes links info
     Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
+    Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
+    Mat_BW = defaultdict(lambda: defaultdict(lambda: None))
 
     # Get links between switches
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
@@ -47,11 +50,15 @@ def Init_Mat_Links_And_BW():
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
-            Mat_Links[EachElem['src-switch'][-3:]][EachElem['src-port']] = [EachElem['dst-switch'][-3:],
-                                                                            EachElem['dst-port']]
-            Mat_Links[EachElem['dst-switch'][-3:]][EachElem['dst-port']] = [EachElem['src-switch'][-3:],
-                                                                            EachElem['src-port']]
-            # MARK: REMOVE the [-3:] before running this script in production environments
+            Mat_Links[EachElem['src-switch'][-3:]][EachElem['src-port']] = \
+                [EachElem['dst-switch'][-3:], EachElem['dst-port']]
+            Mat_Links[EachElem['dst-switch'][-3:]][EachElem['dst-port']] = \
+                [EachElem['src-switch'][-3:], EachElem['src-port']]
+            Mat_SWHosts[EachElem['src-switch'][-3:]][EachElem['dst-switch'][-3:]] = \
+                [EachElem['src-port'], EachElem['dst-port']]
+            Mat_SWHosts[EachElem['dst-switch'][-3:]][EachElem['src-switch'][-3:]] = \
+                [EachElem['dst-port'], EachElem['src-port']]
+            # MARK: REMOVE [-3:] before using this script in production environments
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
@@ -64,11 +71,22 @@ def Init_Mat_Links_And_BW():
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         for EachElem in API_Result:
+            if len(EachElem['ipv4'][0]) == 0:
+                print 'Error: Host IPv4 address not ready yet. Please wait a while after pingall.'
+                exit(-1)
             InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
-            Mat_Links[InEachE['switchDPID'][-3:]][InEachE['port']] = [EachElem['ipv4'][0][-3:], 0]
-            Mat_Links[EachElem['ipv4'][0][-3:]][0] = [InEachE['switchDPID'][-3:], InEachE['port']]
+            Mat_Links[InEachE['switchDPID'][-3:]][InEachE['port']] = \
+                [EachElem['ipv4'][0][-3:], 0]
+            Mat_Links[EachElem['ipv4'][0][-3:]][0] = \
+                [InEachE['switchDPID'][-3:], InEachE['port']]
+            Mat_SWHosts[InEachE['switchDPID'][-3:]][EachElem['ipv4'][0][-3:]] = \
+                [InEachE['port'], 0]
+            Mat_SWHosts[EachElem['ipv4'][0][-3:]][InEachE['switchDPID'][-3:]] = \
+                [0, InEachE['port']]
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
+
+    # Mat_BW = Mat_SWHosts  # Not necessary
 
     # Get BW
     API_Result = Get_JSON_From_URL(URL_REST_API_portdesc_BW)
@@ -86,13 +104,15 @@ def Init_Mat_Links_And_BW():
                 if isinstance(CurrVal[0], list):
                     continue
                 else:
-                    Mat_Links[EachElem][int(InInEachE['portNumber'])] = [CurrVal, int(InInEachE['currSpeed']) / 1000000]
-                    # print DataFrame(Mat_Links).T.fillna(0)
-                    Mat_Links[CurrVal[0]][CurrVal[1]] = [Mat_Links[CurrVal[0]][CurrVal[1]],
-                                                         int(InInEachE['currSpeed']) / 1000000]
-                    # print DataFrame(Mat_Links).T.fillna(0)
+                    Speed_In_Gbps = int(InInEachE['currSpeed']) / 1000000
+                    Mat_Links[EachElem][int(InInEachE['portNumber'])] = \
+                        [CurrVal, Speed_In_Gbps]
+                    Mat_Links[CurrVal[0]][CurrVal[1]] = \
+                        [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Gbps]
+                    Mat_BW[EachElem][CurrVal[0]] = Speed_In_Gbps
+                    Mat_BW[CurrVal[0]][EachElem] = Speed_In_Gbps
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
-    return Mat_Links
+    return Mat_Links, Mat_SWHosts, Mat_BW
 
