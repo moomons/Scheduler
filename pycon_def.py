@@ -36,6 +36,12 @@ URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (F
 # curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
 
 
+Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
+Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
+Mat_BW_Cap = defaultdict(lambda: defaultdict(lambda: None))
+Mat_BW_Cap_MASK = defaultdict(lambda: defaultdict(lambda: None))
+
+
 Lock_Get_Current_Bps = threading.Lock()
 Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
 Mat_BW_Curr_LastUpd = datetime.now() - timedelta(10)
@@ -55,9 +61,7 @@ def Init_Mat_Links_And_BW():
     # Initialization
 
     # Extract switches and nodes links info
-    Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
-    Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
-    Mat_BW_Cap = defaultdict(lambda: defaultdict(lambda: None))
+    # Now become global
 
     # Get links between switches
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
@@ -124,13 +128,15 @@ def Init_Mat_Links_And_BW():
                         [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Mbps]
                     Mat_BW_Cap[EachElem][CurrVal[0]] = Speed_In_Mbps
                     Mat_BW_Cap[CurrVal[0]][EachElem] = Speed_In_Mbps
+                    Mat_BW_Cap_MASK[EachElem][CurrVal[0]] = 1.0
+                    Mat_BW_Cap_MASK[CurrVal[0]][EachElem] = 1.0
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
-    return Mat_Links, Mat_SWHosts, Mat_BW_Cap
+    return Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK
 
 
-def Get_Current_Bps(Mat_Links):
+def Get_Current_Bps():
     """Get Current Bps"""
 
     global Mat_BW_Curr_LastUpd
@@ -168,3 +174,16 @@ def Get_Current_Bps(Mat_Links):
 
     return Mat_BW_Current
 
+
+def Get_Current_Bps_For_Dijkstra():
+    """Difference: Will add 0.1 to non-zero links for shortest path algo"""
+
+    Mat_BW_Current_DJ = Get_Current_Bps()
+
+    for A in Mat_BW_Cap_MASK:
+        C = Mat_BW_Cap_MASK[A]
+        for B in C:
+            if C[B] > 0.0:
+                Mat_BW_Current_DJ[A][B] += 0.1
+
+    return Mat_BW_Current_DJ
