@@ -36,6 +36,8 @@ class StaticFlowPusher(object):
         ret = (response.status, response.reason, response.read())
         print ret
         conn.close()
+
+        # TODO: Should log this to file, controlled by a global flag
         return ret
 
 
@@ -51,7 +53,7 @@ def StaticFlowPusherTest():
         "cookie": "0",
         # "priority": "32767",
         "active": "true",
-        # "idle_timeout": "50",
+        "idle_timeout": "5",
         # "in_port": "2",
         "eth_type": "0x0800",  # IPv4
         # "ip_proto": "6",  # TCP

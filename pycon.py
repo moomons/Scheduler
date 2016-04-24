@@ -11,7 +11,12 @@ from ServerHandler import *
 
 
 def main():
-    print('PyCon, completely rewritten by mons. Initializing ...')
+    print('PyCon: An OpenFlow-based Hadoop MapReduce monitor and network controller.\n' +
+          'Completely rewritten by mons. Works with modified Floodlight and Hadoop MR.\n\n')
+
+    logger.info('Initializing ...')
+
+    exit(0)
 
     Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
 

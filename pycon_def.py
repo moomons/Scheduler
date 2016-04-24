@@ -18,6 +18,27 @@ import networkx as nx
 import numpy as np
 
 
+# LOGGING
+import logging
+
+# create logger
+logger = logging.getLogger('PyCon')
+logger.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+logger.addHandler(ch)
+
+
 BEGIN = 0  # -3 if you want compact debug output, but this WILL impact the dijkstra
 
 
@@ -144,8 +165,8 @@ def Init_Mat_Links_And_BW():
     return Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK
 
 
-def Get_Current_Bps():
-    """Get Current Bps"""
+def Get_Current_Mbps():
+    """Get Current Mbps"""
 
     global Mat_BW_Curr_LastUpd
     if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:  # A method to compare date
@@ -180,13 +201,14 @@ def Get_Current_Bps():
 
     Lock_Get_Current_Bps.release()  # Unlock
 
+    # TODO: Should log this to file, controlled by a flag
     return Mat_BW_Current
 
 
 def Get_Dijkstra_Path(start, end):
     """Difference: Will add some value to non-zero links for shortest path algo"""
 
-    Mat_BW_Current = Get_Current_Bps()
+    Mat_BW_Current = Get_Current_Mbps()
 
     length = len(Mat_BW_Current)
     Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
