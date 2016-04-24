@@ -4,6 +4,10 @@ Reference: http://blog.csdn.net/fei_zodiac/article/details/24706313
 
 import httplib
 import json
+from pycon_def import *
+
+
+FlowMod_n = 0  # make this variable global
 
 
 class StaticFlowPusher(object):
@@ -41,30 +45,33 @@ class StaticFlowPusher(object):
         return ret
 
 
-def StaticFlowPusherTest():
-    pusher = StaticFlowPusher('127.0.0.1')  # Controller IP
+def PushFlowMod(route, att):
+    global FlowMod_n
+    pusher = StaticFlowPusher(Floodlight_IP)  # Controller IP
 
-    FlowMod_n = 0  # make this variable global
+    for INDEX in range(1, len(route) - 1):
+        print INDEX
+        FlowMod_n += 1
+        # Setup the Flow Entry for route[INDEX] to route[INDEX+1]
+        if INDEX < len(route) - 1:
+            flow1 = {
+                "name": "pycon-flow-" + str(FlowMod_n),
+                "switch": route[INDEX],
+                "cookie": "0",
+                # "priority": "32767",
+                "active": "true",
+                "idle_timeout": "5",
+                "in_port": Mat_SWHosts[INDEX-1][INDEX][1],
+                "eth_type": "0x0800",  # IPv4
+                "ip_proto": "6",  # TCP
+                "ipv4_src": att['ip_src'],
+                "ipv4_dst": att['ip_dst'],
+                # "ip_tos": "1",
+                "tcp_src": att['tcp_src'],
+                "tcp_dst": att['tcp_dst'],
+                "actions": "output=" + str(Mat_SWHosts[INDEX][INDEX+1][0])
+                }
+        pusher.set(flow1)
 
-    FlowMod_n += 3
-    flow1 = {
-        "name": "flow-mod-" + str(FlowMod_n),
-        "switch": "00:00:00:00:00:00:00:02",
-        "cookie": "0",
-        # "priority": "32767",
-        "active": "true",
-        "idle_timeout": "5",
-        # "in_port": "2",
-        "eth_type": "0x0800",  # IPv4
-        # "ip_proto": "6",  # TCP
-        "ipv4_src": "10.0.0.1",
-        "ipv4_dst": "10.0.0.2",
-        # "ip_tos": "1",
-        # "tcp_src": "55555",
-        # "tcp_dst": "13562",
-        "actions": "output=1"
-        }
-    # Ref: https://floodlight.atlassian.net/wiki/pages/viewpage.action?pageId=1343518
-    
-    pusher.set(flow1)
+# Ref: https://floodlight.atlassian.net/wiki/pages/viewpage.action?pageId=1343518
 

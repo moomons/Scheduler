@@ -58,6 +58,7 @@ def Process(data, sender_client_address):
             Dict_RcvdData[attempt]['Timestamp_RcvdFL'] = datetime.now()  # Log
             if Dict_RcvdData[attempt]['tcp_dst'] is not None:
                 PerformRouting(Dict_RcvdData[attempt])
+                del Dict_RcvdData[attempt]  # WARNING: Not tested! MAY RAISE AN ERROR!
     else:
         # The message is from the Hadoop MR
         attempt = data['coflowId']
@@ -72,6 +73,7 @@ def Process(data, sender_client_address):
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
             PerformRouting(Dict_RcvdData[attempt])
+            del Dict_RcvdData[attempt]  # WARNING: Not tested! MAY RAISE AN ERROR!
 
     logger.info('Data processing done.')
 
@@ -88,13 +90,9 @@ def PerformRouting(att):
     route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
 
     logger.info('Route: ' + str(route))
-    if len(route) < 2:
-        logger.error('Routing failed. Please check FL. And perform pingall.')
+    if len(route) < 3:
+        logger.error('Routing failed. Should at least be: Host-SW-Host Please check FL. And perform pingall.')
         return -1
 
-    return PerformFlowMod(route)
+    return PushFlowMod(route, att)
 
-
-def PerformFlowMod(route):
-
-    return 0

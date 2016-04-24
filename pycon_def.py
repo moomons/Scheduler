@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import threading
 import networkx as nx
 import numpy as np
+from pycon_cfg import *
 
 
 # LOGGING
@@ -40,13 +41,6 @@ logger.addHandler(ch)
 
 
 BEGIN = 0  # -3 if you want compact debug output, but this WILL impact the dijkstra
-
-
-# Configurations and global variables
-# IP and Port config
-# floodlight_host = '192.168.109.214'
-Floodlight_IP = '127.0.0.1'
-Floodlight_Port = 8080
 
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
@@ -222,7 +216,7 @@ def Get_Dijkstra_Path(start, end):
         Counter += 1
 
     # Check if the start and end is in the list
-    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts):
+    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
         print 'Error in Dijkstra: Invalid start or end point.'
         return []
 
