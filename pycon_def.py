@@ -10,6 +10,7 @@ by mons
 from collections import defaultdict
 import json
 import urllib2
+import pprint
 from pandas import *
 
 
@@ -109,13 +110,13 @@ def Init_Mat_Links_And_BW():
                 if isinstance(CurrVal[0], list):
                     continue
                 else:
-                    Speed_In_Gbps = int(InInEachE['currSpeed']) / 1000000
+                    Speed_In_Mbps = int(InInEachE['currSpeed']) / 1000
                     Mat_Links[EachElem][int(InInEachE['portNumber'])] = \
-                        [CurrVal, Speed_In_Gbps]
+                        [CurrVal, Speed_In_Mbps]
                     Mat_Links[CurrVal[0]][CurrVal[1]] = \
-                        [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Gbps]
-                    Mat_BW_Cap[EachElem][CurrVal[0]] = Speed_In_Gbps
-                    Mat_BW_Cap[CurrVal[0]][EachElem] = Speed_In_Gbps
+                        [Mat_Links[CurrVal[0]][CurrVal[1]], Speed_In_Mbps]
+                    Mat_BW_Cap[EachElem][CurrVal[0]] = Speed_In_Mbps
+                    Mat_BW_Cap[CurrVal[0]][EachElem] = Speed_In_Mbps
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
 
@@ -125,6 +126,25 @@ def Init_Mat_Links_And_BW():
 def Get_Current_Bps(Mat_Links):
     Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
 
-    # URL_REST_API_Current_BW
-    print 'Get Bps'
+    # Get Current Bps
+    API_Result = Get_JSON_From_URL(URL_REST_API_Current_BW)
+    # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
+    try:
+        for EachElem in API_Result:
+            if EachElem['port'] == u'local': continue
+            pprint.pprint(EachElem)
+
+            src_machine = EachElem['dpid'][-3:]  # Source machine
+            src_port = int(EachElem['port'])  # Source port
+            Mbps_out = int(EachElem['bits-per-second-tx']) / 1000000  # Egress
+            Mbps_in = int(EachElem['bits-per-second-rx']) / 1000000  # Ingress
+            dst_machine = Mat_Links[src_machine][src_port][0][0]
+            # dst_port = Mat_Links[src_machine][src_port][0][1]
+
+            Mat_BW_Current[src_machine][dst_machine] = Mbps_out
+            Mat_BW_Current[dst_machine][src_machine] = Mbps_in
+    except KeyError:
+        print 'KeyError: Are you sure the FL is up?'
+
+    return Mat_BW_Current
 
