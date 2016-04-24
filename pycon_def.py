@@ -12,6 +12,8 @@ import json
 import urllib2
 import pprint
 from pandas import *
+from datetime import datetime, timedelta
+import threading
 
 
 # Configurations and global variables
@@ -32,6 +34,11 @@ URL_REST_API_Flow_Mod = 'http://%s:%d/wm/staticflowpusher/json' % (Floodlight_IP
 # curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"flow-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
 URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
+
+
+Lock_Get_Current_Bps = threading.Lock()
+Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
+Mat_BW_Curr_LastUpd = datetime.now() - timedelta(10)
 
 
 def Get_JSON_From_URL(url):
@@ -124,15 +131,26 @@ def Init_Mat_Links_And_BW():
 
 
 def Get_Current_Bps(Mat_Links):
-    Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
+    """Get Current Bps"""
 
-    # Get Current Bps
+    global Mat_BW_Curr_LastUpd
+    if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:  # A method to compare date
+        # if it hasn't been more than 2s before last updated, just return the old dict
+        # print 'Old one :)'
+        return Mat_BW_Current
+
+    Lock_Get_Current_Bps.acquire()  # Lock to sync
+
     API_Result = Get_JSON_From_URL(URL_REST_API_Current_BW)
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
+
     try:
         for EachElem in API_Result:
-            if EachElem['port'] == u'local': continue
-            pprint.pprint(EachElem)
+            if EachElem['port'] == u'local':
+                continue
+            # pprint.pprint(EachElem)
+
+            Mat_BW_Curr_LastUpd = datetime.strptime(EachElem['updated'], '%a %b %d %H:%M:%S %Z %Y')
 
             src_machine = EachElem['dpid'][-3:]  # Source machine
             src_port = int(EachElem['port'])  # Source port
@@ -145,6 +163,8 @@ def Get_Current_Bps(Mat_Links):
             Mat_BW_Current[dst_machine][src_machine] = Mbps_in
     except KeyError:
         print 'KeyError: Are you sure the FL is up?'
+
+    Lock_Get_Current_Bps.release()  # Unlock
 
     return Mat_BW_Current
 
