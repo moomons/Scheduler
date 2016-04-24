@@ -1,0 +1,48 @@
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 2,
+            "shortPortNumber": 2
+        },
+        "switch": "00:00:00:00:00:00:00:02"
+    },
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 3,
+            "shortPortNumber": 3
+        },
+        "switch": "00:00:00:00:00:00:00:02"
+    },
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 2,
+            "shortPortNumber": 2
+        },
+        "switch": "00:00:00:00:00:00:00:03"
+    },
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 1,
+            "shortPortNumber": 1
+        },
+        "switch": "00:00:00:00:00:00:00:03"
+    },
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 3,
+            "shortPortNumber": 3
+        },
+        "switch": "00:00:00:00:00:00:00:01"
+    },
+    {
+        "port": {
+            "length": 4,
+            "portNumber": 2,
+            "shortPortNumber": 2
+        },
+        "switch": "00:00:00:00:00:00:00:01"
+    }

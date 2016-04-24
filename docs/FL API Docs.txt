@@ -1,0 +1,168 @@
+# API Docs
+
+## 说明
+以下这些 API 的 reply 是我在 mininet OF1.3 的情况下测试出来的结果，在实际环境中务必重新 curl 一下确保拿到的信息格式一致，否则一定会出错。
+
+启用 FL stats，用不着了
+curl -X POST 127.0.0.1:8080/wm/statistics/config/enable/json|pjt
+
+1. 拿到 switch 之间的互联关系：
+curl 127.0.0.1:8080/wm/topology/links/json|pjt
+部分回复：
+    {
+        "direction": "bidirectional",
+        "dst-port": 2,
+        "dst-switch": "00:00:00:00:00:00:00:03",
+        "src-port": 3,
+        "src-switch": "00:00:00:00:00:00:00:02",
+        "type": "internal"
+    }
+需要的信息：
+        "dst-port": 2,
+        "dst-switch": "00:00:00:00:00:00:00:03",
+        "src-port": 3,
+        "src-switch": "00:00:00:00:00:00:00:02",
+
+2. 拿到所有 hosts 和 switch 的连接关系：
+（必须在FL启动，所有客户端都发出或者收到一个packet之后才能正常使用，否则会返回空）
+curl 127.0.0.1:8080/wm/device/|pjt
+部分回复：
+    {
+        "attachmentPoint": [
+            {
+                "errorStatus": null,
+                "port": 2,
+                "switchDPID": "00:00:00:00:00:00:00:01"
+            }
+        ],
+        "entityClass": "DefaultEntityClass",
+        "ipv4": [
+            "10.0.0.4"
+        ],
+        "ipv6": [],
+        "lastSeen": 1461423006195,
+        "mac": [
+            "00:00:00:00:00:04"
+        ],
+        "vlan": [
+            "0x0"
+        ]
+    }
+需要的信息：
+        "attachmentPoint": [
+            {
+                "port": 2,
+                "switchDPID": "00:00:00:00:00:00:00:01"
+            }
+        ],
+        "ipv4": [
+            "10.0.0.4"
+        ],
+        "mac": [
+            "00:00:00:00:00:04"
+        ],
+
+3. 拿有效带宽
+curl 127.0.0.1:8080/wm/core/switch/00:00:00:00:00:00:00:01/port-desc/json|pjt
+回复：
+{
+    "portDesc": [
+        {
+            "currSpeed": "10000000", // 单位是 Kbps
+            "currentFeatures": "2112",
+            "hardwareAddress": "32:18:24:96:69:34",
+            "name": "s1-eth3",
+            "portNumber": "3",
+        },
+        {
+            "currSpeed": "0",
+            "currentFeatures": "0",
+            "hardwareAddress": "96:0c:29:8c:c7:43",
+            "name": "s1",
+            "portNumber": "local",
+        }
+    ],
+    "version": "OF_13"
+}
+
+4. 拿当前带宽（目前FL配置成2秒一更，1秒一更会报错然后什么也拿不到）
+curl 127.0.0.1:8080/wm/statistics/bandwidth/all/all/json|pjt
+部分回复：
+    {
+        "bits-per-second-rx": "0",
+        "bits-per-second-tx": "0",
+        "dpid": "00:00:00:00:00:00:00:01",
+        "port": "3",
+        "updated": "Sat Apr 23 22:58:00 CST 2016"
+    }
+需要的信息：
+        "bits-per-second-rx": "0",
+        "bits-per-second-tx": "0",
+        "dpid": "00:00:00:00:00:00:00:01",
+        "port": "3",
+
+5. 寻路（只能找到某一条路径，比如我找从201到213的路径只返回从224走的路）
+curl 127.0.0.1:8080/wm/topology/route/00:00:00:00:00:00:00:02/2/00:00:00:00:00:00:00:01/2/json|pjt
+回复：
+请见 "FL API route out.txt"
+
+6. 查询流表（仅限使用FL添加的流项）
+curl 127.0.0.1:8080/wm/staticflowpusher/list/all/json|pjt
+回复：
+{
+    "00:00:00:00:00:00:00:02": [
+        {
+            "flow-mod-1": {
+                "command": "ADD",
+                "cookie": "45035997351236006",
+                "cookieMask": "0",
+                "flags": "1",
+                "hardTimeoutSec": "0",
+                "idleTimeoutSec": "0",
+                "instructions": {
+                    "instruction_apply_actions": {
+                        "actions": "output=2"
+                    }
+                },
+                "match": {
+                    "in_port": "1"
+                },
+                "outGroup": "any",
+                "outPort": "any",
+                "priority": "-32536",
+                "version": "OF_13"
+            }
+        }
+    ]
+}
+
+7. 下发流表（加一个流表超时时间）
+curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"flow-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
+回复：
+{
+    "status": "Entry pushed"
+}
+
+8. 删除某项流表
+curl -X DELETE -d '{"name":"flow-mod-1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
+回复：
+{
+    "status": "Entry flow-mod-1 deleted"
+}
+
+9. 清空流表
+curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
+回复：
+{
+    "status": "Deleted all flows."
+}
+
+10. 查询 meters 表
+curl 127.0.0.1:8080/wm/core/switch/00:00:00:00:00:00:00:01/meter/json|pjt
+
+11. 查询 meters 配置
+curl 127.0.0.1:8080/wm/core/switch/00:00:00:00:00:00:00:01/meter-config/json|pjt
+
+12. 使用 queues 限速：
+https://floodlight.atlassian.net/wiki/display/floodlightcontroller/How+to+Use+OpenFlow+Queues
+
