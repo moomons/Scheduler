@@ -19,15 +19,13 @@ import pprint
 floodlight_host = '127.0.0.1'
 floodlight_port = 8080
 
-
-# TODO: Create the topo from FL REST API return info
-topo = defaultdict(lambda: defaultdict(lambda: None))
-
+# Initialization
 # Extract switches and nodes links info
 Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (floodlight_host, floodlight_port)
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
+
 
 API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
 # curl 127.0.0.1:8080/wm/topology/links/json|pjt
@@ -40,6 +38,7 @@ try:
         # MARK: REMOVE the [-5:] before running this script in production environments
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
+
 
 API_Result = pycon_def.json_get_from_url(URL_REST_API_host2switch_links)
 # curl 127.0.0.1:8080/wm/device/|pjt
@@ -56,6 +55,7 @@ try:
         # MARK: REMOVE the [-5:] before running this script in production environments
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
+
 
 fd = DataFrame(Mat_Links).T.fillna(0)
 print fd
