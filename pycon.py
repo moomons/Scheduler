@@ -27,7 +27,7 @@ URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (floodlight_
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
 URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (floodlight_host, floodlight_port)
 
-
+# Get links between switches
 API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
 # curl 127.0.0.1:8080/wm/topology/links/json|pjt
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
@@ -39,7 +39,7 @@ try:
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
-
+# Get links between hosts
 API_Result = pycon_def.json_get_from_url(URL_REST_API_host2switch_links)
 # curl 127.0.0.1:8080/wm/device/|pjt
 if len(API_Result) == 0:
@@ -54,7 +54,7 @@ try:
 except KeyError:
     print 'KeyError: Are you sure the FL is up?'
 
-
+# Get BW
 API_Result = pycon_def.json_get_from_url(URL_REST_API_portdesc_BW)
 # curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
