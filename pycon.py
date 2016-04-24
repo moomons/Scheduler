@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from collections import defaultdict
+from pandas import *
 import json
 import pycon_def
 import pprint
@@ -18,24 +19,26 @@ topo = defaultdict(lambda: defaultdict(lambda: None))
 
 # TODO: Using HTTP POST to get the return value from FL Controller
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (floodlight_host, floodlight_port)
-URL_REST_API_hosttosw_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
+URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (floodlight_host, floodlight_port)
 API_Result = pycon_def.json_get_from_url(URL_REST_API_switch_links)
 
-# Print JSON without formatting
-# print API_Result
-
-# Pretty print
 # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
-# pprint.pprint(API_Result)
 
-# TODO: Extract switches and nodes info from the JSON we just received
-node = defaultdict(lambda: None)
+# Extract switches and nodes links info
+Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 try:
     for e in API_Result:
         pprint.pprint(e)
-        print(e['src-switch'])
-        print(e['src-switch2'])
-        break
+        Mat_Links[e['src-switch']][e['dst-switch']] = [e['src-port'], e['dst-port']]
+        Mat_Links[e['dst-switch']][e['src-switch']] = [e['dst-port'], e['src-port']]
+
+        # print(e['src-switch'])
+        # print(e['src-port'])
 except KeyError:
-    print 'KeyError: The FL return value may have changed or the URL is correct.'
+    print 'KeyError: The FL return value may have changed or the URL is incorrect.'
+
+print Mat_Links
+
+fd = DataFrame(Mat_Links).T.fillna(0)
+print fd
 
