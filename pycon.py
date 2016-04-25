@@ -22,8 +22,8 @@ def main():
     # print 'Matrix of Network Links'
     # print DataFrame(Mat_Links).T.fillna(0)
 
-    print 'Matrix of Switches and Hosts Link Capacity (in Mbps)'
-    print DataFrame(Mat_Links).T.fillna(0)
+    # print 'Matrix of Switches and Hosts Link Capacity (in Mbps)'
+    # print DataFrame(Mat_Links).T.fillna(0)
 
     # print 'Matrix of Bandwidth Capacity'
     # print DataFrame(Mat_BW_Cap).T.fillna(0)
