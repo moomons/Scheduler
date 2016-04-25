@@ -82,6 +82,7 @@ def Init_Mat_Links_And_BW():
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
+        logger.info('Switches: ' + str(len(API_Result)))
         for EachElem in API_Result:
             Mat_Links[EachElem['src-switch'][BEGIN:]][EachElem['src-port']] = \
                 [EachElem['dst-switch'][BEGIN:], EachElem['dst-port']]
@@ -102,6 +103,7 @@ def Init_Mat_Links_And_BW():
         exit(-1)
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
+        logger.info('Links between switches and hosts: ' + str(len(API_Result)))
         for EachElem in API_Result:
             if len(EachElem['ipv4'][0]) == 0:
                 logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
