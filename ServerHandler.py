@@ -53,7 +53,7 @@ def Process(data, sender_client_address):
     # Check if data content already exist in Dict_RcvdData (by 'attempt'):
     # if not exist, write; if exist, write incomplete info
     # if info complete, calc route and call StaticFlowPusher to perform flow mod
-    if 'tcp_src' in data:
+    if 'srcPort' in data:
         # FL controller message
         for attempt in data['para_map'].split(','):
             Dict_RcvdData[attempt]['job'] = data['para_job']
