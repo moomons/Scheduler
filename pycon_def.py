@@ -204,10 +204,10 @@ def Get_Current_Mbps():
                 continue
             # pprint.pprint(EachElem)
 
-            Mat_BW_Curr_LastUpd = datetime.strptime(EachElem['updated'], '%a %b %d %H:%M:%S %Z %Y')
-
             src_machine = EachElem['dpid'][BEGIN:]  # Source machine
             src_port = int(EachElem['port'])  # Source port
+            if Mat_Links[src_machine][src_port] is None:
+                continue  # There is a possibility that some unconnected ports will show up in the API_Result.
             Mbps_out = int(EachElem['bits-per-second-tx']) / 1000000  # Egress
             Mbps_in = int(EachElem['bits-per-second-rx']) / 1000000  # Ingress
             dst_machine = Mat_Links[src_machine][src_port][0][0]
@@ -215,6 +215,8 @@ def Get_Current_Mbps():
 
             Mat_BW_Current[src_machine][dst_machine] = Mbps_out
             Mat_BW_Current[dst_machine][src_machine] = Mbps_in
+
+            Mat_BW_Curr_LastUpd = datetime.strptime(EachElem['updated'], '%a %b %d %H:%M:%S %Z %Y')
     except KeyError:
         logger.error('KeyError: Are you sure the FL is up?')
         exit(-1)
