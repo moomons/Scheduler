@@ -60,10 +60,10 @@ def PushFlowMod(route, att):
                 "name": "pycon-flow-" + str(FlowMod_n),
                 "switch": route[INDEX],
                 "cookie": "0",
-                # "priority": "32767",
+                "priority": "39767",
                 "active": "true",
                 "idle_timeout": "50",  # DEBUG 50. Release 5
-                "in_port": Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1],
+                "in_port": str(Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1]),
                 "eth_type": "0x0800",  # IPv4
                 "ip_proto": "6",  # TCP
                 "ipv4_src": att['ip_src'],
