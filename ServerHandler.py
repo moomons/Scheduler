@@ -65,7 +65,7 @@ def Process(data, sender_client_address):
             if Dict_RcvdData[attempt]['tcp_dst'] is not None:
                 PerformRouting(Dict_RcvdData[attempt])
                 del Dict_RcvdData[attempt]
-    else:
+    elif 'coflowId' in data:
         # MR message
         attempt = data['coflowId']
         spl = data['src'].split(':')
@@ -80,8 +80,10 @@ def Process(data, sender_client_address):
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
             PerformRouting(Dict_RcvdData[attempt])
             del Dict_RcvdData[attempt]
+    else:
+        logger.error("Process: Invalid POST data (from neither FL nor MR")
 
-    logger.info('Data processing done.')
+    logger.info('Process() done.')
 
 
 def PerformRouting(att):
