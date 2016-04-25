@@ -5,18 +5,13 @@ import json
 import logging
 import sys
 
-# url = 'http://127.0.0.1:7999'
-host = '127.0.0.1'
-port = 7999
+url = 'http://127.0.0.1:7999'
 
 
 def http_post():
-    global host, port
+    global url
     if len(sys.argv) >= 2:
-        host = sys.argv[1]
-    if len(sys.argv) >= 3:
-        port = sys.argv[2]
-    url = 'http://' + host + ':' + str(port)
+        url = sys.argv[1]
     logging.warning('URL: ' + url)
 
     try:
