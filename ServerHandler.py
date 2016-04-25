@@ -15,6 +15,13 @@ Server_Port = 7999
 
 Dict_RcvdData = defaultdict(lambda: defaultdict(lambda: None))
 
+Dict_KnownMRIPtoOFIP = {
+    '192.168.109.201': '10.0.0.201',
+    '192.168.109.211': '10.0.0.211',
+    '192.168.109.212': '10.0.0.212',
+    '192.168.109.213': '10.0.0.213',
+}
+
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -90,8 +97,11 @@ def PerformRouting(att):
     """ Do the Routing """
     logger.info(att)  # Log
 
-    if 'ip_dst' not in att:
-        att['ip_dst'] = att['ip_dst_MR']
+    if 'ip_dst' not in att:  # MARK: Should get OF IP from FL. BUT WHY would I get .109 IP from Hadoop MR?
+        if att['ip_dst_MR'] in Dict_KnownMRIPtoOFIP:
+            att['ip_dst'] = Dict_KnownMRIPtoOFIP[att['ip_dst_MR']]
+        else:
+            att['ip_dst'] = att['ip_dst_MR']
 
     # MARK: Different scheduling algorithm will result in different route!
     route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
