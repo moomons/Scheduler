@@ -83,7 +83,7 @@ def Init_Basic_FlowEntries():
     """ Initialize basic flow entries """
     # TODO: if possible, push flow entries like:
     # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=33000,tcp,tp_dst=13562,actions=controller:max_len=1500 && sudo ovs-ofctl dump-flows datanet1
-    # ARP：sh ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP requests
+    # ARP: sh ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP requests
 
     return
 
