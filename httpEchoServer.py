@@ -48,9 +48,9 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 def main():
     host = '0.0.0.0'
     port = 7999
-    if len(sys.argv) >=2:
+    if len(sys.argv) >= 2:
         host = sys.argv[1]
-    if len(sys.argv) >=3:
+    if len(sys.argv) >= 3:
         port = sys.argv[2]
 
     print('Starting server: ' + host + ':' + str(port))

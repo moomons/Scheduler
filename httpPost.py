@@ -3,17 +3,26 @@
 import urllib2
 import json
 import logging
+import sys
 
-url = 'http://127.0.0.1:7999'
+# url = 'http://127.0.0.1:7999'
+host = '127.0.0.1'
+port = 7999
 
 
 def http_post():
+    global host, port
+    if len(sys.argv) >= 2:
+        host = sys.argv[1]
+    if len(sys.argv) >= 3:
+        port = sys.argv[2]
+    url = 'http://' + host + ':' + str(port)
     try:
         for i in range(1, 2):
             logging.warning("Sending request: MR-" + str(i))
             values_MR = {
                 'coflowId': 'attempt_1461250880434_0003_m_000017_0',
-                'src': 'localhost:13562',  # Test if socket can DNS query this and get 127.0.0.1 first
+                'src': '10.0.0.4:13562',  # Test if socket can DNS query this and get 127.0.0.1 first
                 'len': 9285750,  # in bytes
                 'flowId': 998,
                 'dst': 'Sender',
