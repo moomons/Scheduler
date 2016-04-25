@@ -24,7 +24,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
 
     def do_POST(self):
-        logger.info("do_POST")
+        # logger.info("do_POST")
         # logger.info(self.headers)
         nbytes = int(self.headers.getheader('content-length'))
         rawdata = self.rfile.read(nbytes)
@@ -67,7 +67,7 @@ def Process(data, sender_client_address):
             if Dict_RcvdData[attempt]['tcp_dst'] is not None:
                 PerformRouting(Dict_RcvdData[attempt])
                 Lock_DictWrite.acquire()
-                del Dict_RcvdData[attempt]  # WARNING: Not tested! MAY RAISE AN ERROR!
+                del Dict_RcvdData[attempt]
                 Lock_DictWrite.release()
     else:
         # The message is from the Hadoop MR
@@ -79,14 +79,14 @@ def Process(data, sender_client_address):
         Lock_DictWrite.acquire()
         Dict_RcvdData[attempt]['ip_src'] = socket.gethostbyname(spl[0])
         Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address[0]))  # MARK: NOT Sure about this! Wireshark and test!
-        Dict_RcvdData[attempt]['tcp_dst'] = spl[1]
+        Dict_RcvdData[attempt]['tcp_dst'] = int(spl[1])
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
         Lock_DictWrite.release()
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
             PerformRouting(Dict_RcvdData[attempt])
             Lock_DictWrite.acquire()
-            del Dict_RcvdData[attempt]  # WARNING: Not tested! MAY RAISE AN ERROR!
+            del Dict_RcvdData[attempt]
             Lock_DictWrite.release()
 
     logger.info('Data processing done.')
