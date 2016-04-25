@@ -52,6 +52,7 @@ URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (F
 # curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
 
 
+Set_Switches_DPID = set()
 Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
 Mat_BW_Cap = defaultdict(lambda: defaultdict(lambda: None))
@@ -77,13 +78,19 @@ def Get_JSON_From_URL(url):
 
 def Init_Mat_Links_And_BW():
     """ Initialize Links and Bandwidth Matrices """
+    global Set_Switches_DPID
 
     # Get links between switches
     API_Result = Get_JSON_From_URL(URL_REST_API_switch_links)
+    if len(API_Result) == 0:
+        logger.error('Error: No switches detected. Please start FL and config the switches before running this script.')
+        exit(-1)
     # print json.dumps(API_Result, sort_keys=True, indent=2, separators=(',', ': '))
     try:
         logger.info('Switches: ' + str(len(API_Result)))
         for EachElem in API_Result:
+            Set_Switches_DPID.add(EachElem['src-switch'][BEGIN:])
+            Set_Switches_DPID.add(EachElem['dst-switch'][BEGIN:])
             Mat_Links[EachElem['src-switch'][BEGIN:]][EachElem['src-port']] = \
                 [EachElem['dst-switch'][BEGIN:], EachElem['dst-port']]
             Mat_Links[EachElem['dst-switch'][BEGIN:]][EachElem['dst-port']] = \
