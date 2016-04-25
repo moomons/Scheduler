@@ -63,7 +63,7 @@ def PushFlowMod(route, att):
                 # "priority": "32767",
                 "active": "true",
                 "idle_timeout": "50",  # DEBUG 50. Release 5
-                "in_port": Mat_SWHosts[INDEX-1][INDEX][1],
+                "in_port": Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1],
                 "eth_type": "0x0800",  # IPv4
                 "ip_proto": "6",  # TCP
                 "ipv4_src": att['ip_src'],
@@ -71,7 +71,7 @@ def PushFlowMod(route, att):
                 # "ip_tos": "1",
                 "tcp_src": att['tcp_src'],
                 "tcp_dst": att['tcp_dst'],
-                "actions": "output=" + str(Mat_SWHosts[INDEX][INDEX+1][0])
+                "actions": "output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
                 }
         logger.debug(flow1)  # LOG
         pusher.set(flow1)
