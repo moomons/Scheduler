@@ -53,9 +53,12 @@ def Process(data, sender_client_address):
     # Check if data content already exist in Dict_RcvdData (by 'attempt'):
     # if not exist, write; if exist, write incomplete info
     # if info complete, calc route and call StaticFlowPusher to perform flow mod
-    if len(data) == 4:  # The message is from the FL controller
+    if len(data) == 4:
+        # FL controller message
         for attempt in data['para_map'].split(','):
             Dict_RcvdData[attempt]['job'] = data['para_job']
+            if 'ip_dst' in data:
+                Dict_RcvdData[attempt]['ip_dst'] = data['ip_dst']
             Dict_RcvdData[attempt]['tcp_src'] = data['srcPort']
             Dict_RcvdData[attempt]['reduce'] = data['para_reduce']
             Dict_RcvdData[attempt]['Timestamp_RcvdFL'] = datetime.now()  # Log
@@ -63,14 +66,14 @@ def Process(data, sender_client_address):
                 PerformRouting(Dict_RcvdData[attempt])
                 del Dict_RcvdData[attempt]
     else:
-        # The message is from the Hadoop MR
+        # MR message
         attempt = data['coflowId']
         spl = data['src'].split(':')
         if not len(spl) == 2:
             logger.error('Error when processing data: Invalid src param. Aborting.')
             return
         Dict_RcvdData[attempt]['ip_src'] = socket.gethostbyname(spl[0])
-        Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address[0]))
+        Dict_RcvdData[attempt]['ip_dst_MR'] = socket.gethostbyname(str(sender_client_address[0]))  # MARK: Not sure of the correctness
         Dict_RcvdData[attempt]['tcp_dst'] = int(spl[1])
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
@@ -84,6 +87,9 @@ def Process(data, sender_client_address):
 def PerformRouting(att):
     """ Do the Routing """
     logger.info(att)  # Log
+
+    if 'ip_dst' not in att:
+        att['ip_dst'] = att['ip_dst_MR']
 
     # MARK: Different scheduling algorithm will result in different route!
     route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy

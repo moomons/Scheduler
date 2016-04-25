@@ -34,6 +34,7 @@ def http_post():
                 'para_map': 'attempt_1461250880434_0003_m_000017_0',  # Test multiple attempts later sep with ','
                 'para_job': 'job_1461250880434_0003',  # the 'Real' coflowId
                 'srcPort': 40108,  # the most important info here
+                'ip_dst': '10.0.0.1',  # TODO: Need to mod FL to add this entry. Pick sender IP in PACKET-IN message
                 'para_reduce': 0,
             }
             jdata = json.dumps(values_FL)
