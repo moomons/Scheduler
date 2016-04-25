@@ -17,6 +17,8 @@ def http_post():
     if len(sys.argv) >= 3:
         port = sys.argv[2]
     url = 'http://' + host + ':' + str(port)
+    logging.warning('URL: ' + url)
+
     try:
         for i in range(1, 2):
             logging.warning("Sending request: MR-" + str(i))
