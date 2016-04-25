@@ -14,7 +14,6 @@ Server_IP = '0.0.0.0'
 Server_Port = 7999
 
 Dict_RcvdData = defaultdict(lambda: defaultdict(lambda: None))
-Lock_DictWrite = threading.Lock()
 
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -51,24 +50,18 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 def Process(data, sender_client_address):
     """ Process the POST data """
 
-    # MARK: Do I really need the Lock here?
-
     # Check if data content already exist in Dict_RcvdData (by 'attempt'):
     # if not exist, write; if exist, write incomplete info
     # if info complete, calc route and call StaticFlowPusher to perform flow mod
     if len(data) == 4:  # The message is from the FL controller
         for attempt in data['para_map'].split(','):
-            Lock_DictWrite.acquire()  # Write protection
             Dict_RcvdData[attempt]['job'] = data['para_job']
             Dict_RcvdData[attempt]['tcp_src'] = data['srcPort']
             Dict_RcvdData[attempt]['reduce'] = data['para_reduce']
             Dict_RcvdData[attempt]['Timestamp_RcvdFL'] = datetime.now()  # Log
-            Lock_DictWrite.release()
             if Dict_RcvdData[attempt]['tcp_dst'] is not None:
                 PerformRouting(Dict_RcvdData[attempt])
-                Lock_DictWrite.acquire()
                 del Dict_RcvdData[attempt]
-                Lock_DictWrite.release()
     else:
         # The message is from the Hadoop MR
         attempt = data['coflowId']
@@ -76,18 +69,14 @@ def Process(data, sender_client_address):
         if not len(spl) == 2:
             logger.error('Error when processing data: Invalid src param. Aborting.')
             return
-        Lock_DictWrite.acquire()
         Dict_RcvdData[attempt]['ip_src'] = socket.gethostbyname(spl[0])
-        Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address[0]))  # MARK: NOT Sure about this! Wireshark and test!
+        Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address[0]))
         Dict_RcvdData[attempt]['tcp_dst'] = int(spl[1])
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
-        Lock_DictWrite.release()
         if Dict_RcvdData[attempt]['tcp_src'] is not None:
             PerformRouting(Dict_RcvdData[attempt])
-            Lock_DictWrite.acquire()
             del Dict_RcvdData[attempt]
-            Lock_DictWrite.release()
 
     logger.info('Data processing done.')
 
