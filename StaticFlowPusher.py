@@ -85,5 +85,21 @@ def Init_Basic_FlowEntries():
     # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=33000,tcp,tp_dst=13562,actions=controller:max_len=1500 && sudo ovs-ofctl dump-flows datanet1
     # ARP: sh ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP requests
 
-    return
+    # pusher = StaticFlowPusher(Floodlight_IP)  # Controller IP
+    # for element in Set_Switches_DPID:
+    #     # dl_type=0x806,nw_proto=1,actions=flood
+    #     flow1 = {
+    #         "name": "pycon-flow-ARP-" + element,
+    #         "switch": element,
+    #         # "cookie": "0",
+    #         "priority": "19767",
+    #         "active": "true",
+    #         "eth_type": "0x0806",  # ARP
+    #         # "ip_proto": "1",  # ICMPv4?
+    #         "actions": "flood"
+    #     }
+    #     logger.debug(flow1)  # LOG
+    #     pusher.set(flow1)
+
+    logger.info("Basic flow entries pushed.")
 
