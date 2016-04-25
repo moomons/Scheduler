@@ -43,7 +43,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # self.wfile.write(rawdata)
 
         # process the request
-        logger.info("Processing data:")
+        # logger.info("Processing data:")
         Process(data, self.client_address)
 
 
@@ -83,7 +83,7 @@ def Process(data, sender_client_address):
     else:
         logger.error("Process: Invalid POST data (from neither FL nor MR")
 
-    logger.info('Process() done.')
+    # logger.info('Process() done.')
 
 
 def PerformRouting(att):
