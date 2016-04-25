@@ -78,7 +78,7 @@ def Process(data, sender_client_address):
             return
         Lock_DictWrite.acquire()
         Dict_RcvdData[attempt]['ip_src'] = socket.gethostbyname(spl[0])
-        Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address))  # MARK: NOT Sure about this! Wireshark and test!
+        Dict_RcvdData[attempt]['ip_dst'] = socket.gethostbyname(str(sender_client_address[0]))  # MARK: NOT Sure about this! Wireshark and test!
         Dict_RcvdData[attempt]['tcp_dst'] = spl[1]
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
