@@ -35,6 +35,9 @@ def main():
     # print 'Matrix of Current Bandwidth Capacity (in Mbps)'
     # print DataFrame(Mat_BW_Current).T.fillna(0)
 
+    logger.info('Initializing basic flow entries ...')
+    Init_Basic_FlowEntries()
+
     # Start listening to the POST message from Hadoop MapReduce and FL
     logger.info('HTTP Server listening at ' + Server_IP + ':' + str(Server_Port))
     httpd = SocketServer.TCPServer((Server_IP, Server_Port), ServerHandler)
