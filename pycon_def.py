@@ -36,6 +36,14 @@ logger.addHandler(ch)  # add ch to logger
 BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However beware of duplicates
 
 
+Dict_KnownMACtoIPv4 = {
+	'f8:0f:41:f4:2a:1b': '10.0.0.201',
+	'f8:0f:41:f6:63:41': '10.0.0.211',
+	'f8:0f:41:f6:68:4e': '10.0.0.212',
+	'f8:0f:41:f6:68:4b': '10.0.0.213',
+}
+
+
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/topology/links/json|pjt
 URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (Floodlight_IP, Floodlight_Port)
@@ -113,8 +121,11 @@ def Init_Mat_Links_And_BW():
         logger.info('Links between switches and hosts: ' + str(len(API_Result)))
         for EachElem in API_Result:
             if len(EachElem['ipv4'][0]) == 0:
-                logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
-                exit(-1)
+                if EachElem['mac'] in Dict_KnownMACtoIPv4:
+                    EachElem['ipv4'] = Dict_KnownMACtoIPv4[EachElem['mac']]
+                else:
+                    logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
+                    exit(-1)
             InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
             Mat_Links[InEachE['switchDPID'][BEGIN:]][InEachE['port']] = \
                 [EachElem['ipv4'][0][BEGIN:], 0]
