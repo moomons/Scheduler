@@ -160,8 +160,10 @@ def Init_Mat_Links_And_BW():
                     continue
                 CurrVal = Mat_Links[EachElem][int(InInEachE['portNumber'])]
                 if CurrVal is None:
-                    logger.error('Error: Host not found. Please pingall. Hosts down for long time inactivity')
-                    exit(-1)
+                    # Maybe the PORT is added but not used, just jump to the next one
+                    continue
+                    # logger.error('Error: Host not found. Please pingall. Hosts down for long time inactivity')
+                    # exit(-1)
                 if isinstance(CurrVal[0], list):
                     continue
                 else:
