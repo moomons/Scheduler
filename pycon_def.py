@@ -37,11 +37,18 @@ BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However b
 
 
 Dict_KnownMACtoIPv4 = {
-	'f8:0f:41:f4:2a:1b': '10.0.0.201',
-	'f8:0f:41:f6:63:41': '10.0.0.211',
-	'f8:0f:41:f6:68:4e': '10.0.0.212',
-	'f8:0f:41:f6:68:4b': '10.0.0.213',
+    'f8:0f:41:f4:2a:1b': '10.0.0.201',
+    'f8:0f:41:f6:63:41': '10.0.0.211',
+    'f8:0f:41:f6:68:4e': '10.0.0.212',
+    'f8:0f:41:f6:68:4b': '10.0.0.213',
 }
+
+# Dict_KnownMACtoIPv4 = {
+#     "00:00:00:00:00:01": "10.0.0.1",
+#     "00:00:00:00:00:02": "10.0.0.2",
+#     "00:00:00:00:00:03": "10.0.0.3",
+#     "00:00:00:00:00:04": "10.0.0.4",
+# }
 
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
@@ -120,12 +127,13 @@ def Init_Mat_Links_And_BW():
     try:
         logger.info('Links between switches and hosts: ' + str(len(API_Result)))
         for EachElem in API_Result:
-            if len(EachElem['ipv4'][0]) == 0:
-                if EachElem['mac'] in Dict_KnownMACtoIPv4:
-                    EachElem['ipv4'] = Dict_KnownMACtoIPv4[EachElem['mac']]
+            if len(EachElem['ipv4']) == 0:
+                if EachElem['mac'][0] in Dict_KnownMACtoIPv4:
+                    EachElem['ipv4'] = [Dict_KnownMACtoIPv4[EachElem['mac'][0]]]
                 else:
-                    logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
-                    exit(-1)
+                    continue
+                    # logger.error('Error: Host IPv4 address not ready yet. Please wait a while after pingall.')
+                    # exit(-1)
             InEachE = EachElem['attachmentPoint'][0]  # Extract the dict inside the list
             Mat_Links[InEachE['switchDPID'][BEGIN:]][InEachE['port']] = \
                 [EachElem['ipv4'][0][BEGIN:], 0]
