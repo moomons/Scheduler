@@ -40,8 +40,10 @@ def http_post():
             req = urllib2.Request(url, jdata)
             response = urllib2.urlopen(req)
             print response.read()
-    except urllib2.URLError:
-        logging.error("Check your connection.")
+    # except urllib2.URLError:
+    #     logging.error("Check your connection.")
+    finally:
+        logging.warning("OK.")
 
 
 if __name__ == '__main__': 
