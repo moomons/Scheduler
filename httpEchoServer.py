@@ -7,14 +7,14 @@ import SimpleHTTPServer
 import SocketServer
 import sys
 
-count = 0
-
-
-def docount():
-    global count
-    po_count = count + 1
-    logging.warning('po_count = ' + str(po_count))
-    count = po_count
+# count = 0
+#
+#
+# def docount():
+#     global count
+#     po_count = count + 1
+#     logging.warning('po_count = ' + str(po_count))
+#     count = po_count
 
 
 class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -33,7 +33,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         logging.warning(data)
         dst = self.client_address
         print('Sender: ' + dst[0] + ':' + str(dst[1]))
-        docount()
+        # docount()
 
         # Begin the response
         self.send_response(200)

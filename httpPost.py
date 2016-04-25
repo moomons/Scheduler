@@ -9,7 +9,7 @@ url = 'http://127.0.0.1:7999'
 
 def http_post():
     try:
-        for i in range(1, 21):
+        for i in range(1, 2):
             logging.warning("Sending request: MR-" + str(i))
             values_MR = {
                 'coflowId': 'attempt_1461250880434_0003_m_000017_0',
