@@ -15,6 +15,7 @@ Server_Port = 7999
 
 Dict_RcvdData = defaultdict(lambda: defaultdict(lambda: None))
 
+# MARK: Fail safe. FL should get dst IP correctly now.
 Dict_KnownMRIPtoOFIP = {
     '192.168.109.201': '10.0.0.201',
     '192.168.109.211': '10.0.0.211',
@@ -97,7 +98,9 @@ def PerformRouting(att):
     """ Do the Routing """
     logger.info(att)  # Log
 
-    if 'ip_dst' not in att:  # MARK: Should get OF IP from FL. BUT WHY would I get .109 IP from Hadoop MR?
+    # MARK: Fail safe. FL should get dst IP correctly now.
+    # ip_dst is in 10.0.0.0/24 while ip_dst_MR is in 192.168.109.0/24
+    if 'ip_dst' not in att:
         if att['ip_dst_MR'] in Dict_KnownMRIPtoOFIP:
             att['ip_dst'] = Dict_KnownMRIPtoOFIP[att['ip_dst_MR']]
         else:

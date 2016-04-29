@@ -22,20 +22,10 @@ import numpy as np
 from pycon_cfg import *
 
 
-# LOGGING
-import logging
-logger = logging.getLogger('PyCon')  # create logger
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()  # create console handler and set level to debug
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')  # create formatter
-ch.setFormatter(formatter)  # add formatter to ch
-logger.addHandler(ch)  # add ch to logger
-
-
 BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However beware of duplicates
 
 
+# MARK: The dict below is placed to mitigate the MAC-only problem (FL only adds MAC to its info panel) in our topology
 Dict_KnownMACtoIPv4 = {
     'f8:0f:41:f4:2a:1b': '10.0.0.201',
     'f8:0f:41:f6:63:41': '10.0.0.211',
@@ -43,6 +33,7 @@ Dict_KnownMACtoIPv4 = {
     'f8:0f:41:f6:68:4b': '10.0.0.213',
 }
 
+# MARK: For mininet debugging
 # Dict_KnownMACtoIPv4 = {
 #     "00:00:00:00:00:01": "10.0.0.1",
 #     "00:00:00:00:00:02": "10.0.0.2",
@@ -223,7 +214,9 @@ def Get_Current_Mbps():
 
     Lock_Get_Current_Bps.release()  # Unlock
 
-    # TODO: Should log the speed matrix to a file or something
+    # Write the speed matrix to a log file for BW usage analysis
+    fileLogger.info("Current Mbps:" + Mat_BW_Current)
+
     return Mat_BW_Current
 
 
