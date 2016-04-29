@@ -19,6 +19,8 @@ class SchedulingAlgo(Enum):
     SEBF = 2
     More = 3
 
+CurrentSchedulingAlgo = SchedulingAlgo.SEBF
+
 
 # LOGGING
 

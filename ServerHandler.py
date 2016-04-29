@@ -107,7 +107,12 @@ def PerformRouting(att):
             att['ip_dst'] = att['ip_dst_MR']
 
     # MARK: Different scheduling algorithm will result in different route!
-    route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
+    if CurrentSchedulingAlgo == SchedulingAlgo.Weighted_Shortest_Path:
+        route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
+    elif CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
+        route = Get_SEBF_Path(att['ip_src'], att['ip_dst'])
+    else:
+        route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Default Algo
 
     logger.info('Route: ' + str(route))
     if len(route) < 3:

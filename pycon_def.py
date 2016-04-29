@@ -258,3 +258,43 @@ def Get_Dijkstra_Path(start, end):
 
     return path
 
+
+# TODO: Under construction
+def Get_SEBF_Path(start, end):
+    """ Use SEBF to plan a route and limit the flow rate. """
+
+    Mat_BW_Current = Get_Current_Mbps()
+
+    length = len(Mat_BW_Current)
+    Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
+    List_SwitchAndHosts = ["" for x in range(length)]
+    Counter = 0
+    RevList = defaultdict(lambda: int)
+
+    for L1 in Mat_BW_Cap_MASK:
+        List_SwitchAndHosts[Counter] = L1
+        RevList[L1] = Counter
+        Counter += 1
+
+    # Check if the start and end is in the list
+    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
+        logger.error('Error in Dijkstra: Invalid start or end point.')
+        return []
+
+    for L1 in Mat_BW_Cap_MASK:
+        L2 = Mat_BW_Cap_MASK[L1]
+        for L3 in L2:
+            if L2[L3] > 0.0:
+                Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
+
+    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
+    path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])
+
+    path = ['' for x in range(len(path_numerical))]
+    Counter = 0
+    for element in path_numerical:
+        path[Counter] = List_SwitchAndHosts[element]
+        Counter += 1
+
+    return path
+
