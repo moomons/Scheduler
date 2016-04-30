@@ -122,7 +122,7 @@ def PerformRouting(att):
         return PushFlowMod(route, att)
     elif CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
         # TODO: Create queue(QoS) and add extra param (queue) for this queue
-        # return PushFlowMod_SEBF(route, att)
+        return PushFlowMod(route, att, 1)
     else:
         logger.error("Unknown Routing Algo. Aborting.")
 

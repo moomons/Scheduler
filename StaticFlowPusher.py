@@ -45,7 +45,7 @@ class StaticFlowPusher(object):
         return ret
 
 
-def PushFlowMod(route, att):
+def PushFlowMod(route, att, queue=0):
     """ Send Flow Mod Message to switches, one by one """
 
     global FlowMod_n
@@ -71,12 +71,15 @@ def PushFlowMod(route, att):
                 # "ip_tos": "1",
                 "tcp_src": att['tcp_src'],
                 "tcp_dst": att['tcp_dst'],
-                "actions": "output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
                 }
+        if queue == 0:
+            flow1["actions"] = "output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
+        elif queue == 1:
+            # TODO: Need queuing for SEBF
+            flow1["actions"] = "set_queue=" + 1  # Can be hexadecimal (with leading 0x) or decimal
+            # Ref: https://floodlight.atlassian.net/wiki/display/floodlightcontroller/Static+Flow+Pusher+API
         logger.debug(flow1)  # LOG
         pusher.set(flow1)
-
-# Ref: https://floodlight.atlassian.net/wiki/pages/viewpage.action?pageId=1343518
 
 
 def Init_Basic_FlowEntries():
