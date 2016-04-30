@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 import threading
 import networkx as nx
 import numpy as np
+from scipy import *
 from pycon_cfg import *
 
 
@@ -215,7 +216,7 @@ def Get_Current_Mbps():
     Lock_Get_Current_Bps.release()  # Unlock
 
     # Write the speed matrix to a log file for BW usage analysis
-    fileLogger.info("Current Mbps:" + Mat_BW_Current)
+    fileLogger.info("Current Mbps:" + str(Mat_BW_Current))
 
     return Mat_BW_Current
 
@@ -259,11 +260,11 @@ def Get_Dijkstra_Path(start, end):
     return path
 
 
-# TODO: Under construction
-def Get_SEBF_Path(start, end):
-    """ Use SEBF to plan a route and limit the flow rate. """
+# TODO: Half way there
+def Get_SEBF_Path(start, end, flow_size):
+    """ Use SEBF to plan a route and limit the flow rate. flow_size is in Byte """
 
-    Mat_BW_Current = Get_Current_Mbps()
+    Mat_BW_Current = Get_Current_Mbps()  # This result is in Mbps
 
     length = len(Mat_BW_Current)
     Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
@@ -278,16 +279,20 @@ def Get_SEBF_Path(start, end):
 
     # Check if the start and end is in the list
     if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
-        logger.error('Error in Dijkstra: Invalid start or end point.')
+        logger.error('Error in SEBF-Dijkstra: Invalid start or end point.')
         return []
 
     for L1 in Mat_BW_Cap_MASK:
         L2 = Mat_BW_Cap_MASK[L1]
         for L3 in L2:
             if L2[L3] > 0.0:
-                Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
+                # Get remaining MB/s
+                Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
 
-    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
+    Mat_FlSize_DIV_BW_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
+    Mat_FlSize_DIV_BW_Numpy[where(isinf(Mat_FlSize_DIV_BW_Numpy))] = 0.0  # Replace Inf with zeros
+
+    G = nx.from_numpy_matrix(Mat_FlSize_DIV_BW_Numpy, create_using=nx.DiGraph())
     path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])
 
     path = ['' for x in range(len(path_numerical))]
