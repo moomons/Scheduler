@@ -200,12 +200,10 @@ def vsctl_remote_db_create(ServerIP, vsctl_port, ethPORT):
 
 
 def runcommand(cmdline):
-    import os
-    # import re
     logger.info("Command line: " + cmdline)
     output = os.popen(cmdline)
     out = output.read()
-    logger.info("Command result: " + out)
+    logger.info("Execution result: " + out)
 
     return out
 
