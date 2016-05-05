@@ -133,13 +133,6 @@ def Init_vsctl():
         "192.168.109.225": {"eth1", "eth2"},
     }
 
-    # DICT = {
-    #     "192.168.101.1": {},
-    # }
-
-    # vsctl_remote_db_port_clear_qos("192.168.101.1", 6634, "s1-eth1")  # mininet, s1
-    # exit(0)
-
     if CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
         # Need to Deconfigure the QoS record from ethPort first before destroying the qos and queue
         for ServerIP in DICT:
@@ -153,7 +146,6 @@ def Init_vsctl():
             for ethPORT in DICT[ServerIP]:
                 # print ethPORT
                 vsctl_remote_db_create(ServerIP, vsctl_port, ethPORT)
-                exit(0)
         logger.info("SEBF: ovs-vsctl config finished.")
 
 
