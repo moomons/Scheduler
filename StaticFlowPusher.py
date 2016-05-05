@@ -3,8 +3,8 @@ Reference: http://blog.csdn.net/fei_zodiac/article/details/24706313
 """
 
 import httplib
-import json
 from pycon_def import *
+import os
 
 
 FlowMod_n = 0  # make this variable global
@@ -83,11 +83,30 @@ def PushFlowMod(route, att, queue=0):
 
 
 def Init_Basic_FlowEntries():
-    """ Initialize basic flow entries """
+    """ Initialize basic flow entries: CONTROLLER PACKET-IN """
     # TODO: if possible, push flow entries like:
-    # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=33000,tcp,tp_dst=13562,actions=controller:max_len=1500 && sudo ovs-ofctl dump-flows datanet1
+    # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=49999,tcp,tp_dst=13562,actions=controller:max_len=1500 && sudo ovs-ofctl dump-flows datanet1
     # ARP: sh ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP requests
 
+    # Simply copied the DICT from VSCtlRemote, actually we are just using the IP
+    DICT = {
+        "192.168.109.214": {"eth1", "eth2", "eth3", "eth4"},
+        "192.168.109.215": {"eth1", "eth2", "eth3", "eth4"},
+        "192.168.109.224": {"eth1", "eth2"},
+        "192.168.109.225": {"eth1", "eth2"},
+    }
+
+    # Viable command:
+    # ovs-ofctl -O OpenFlow13 add-flow tcp:192.168.109.215:6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500
+    # FIRST RUN: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
+    for ServerIP in DICT:
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500"
+        out = runcommand(cmdline)
+        cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
+        out = runcommand(cmdline)
+
+
+    # MARK: This is a failed attempt using FL StaticFlowPusher
     # pusher = StaticFlowPusher(Floodlight_IP)  # Controller IP
     # for element in Set_Switches_DPID:
     #     # dl_type=0x806,nw_proto=1,actions=flood
@@ -105,5 +124,14 @@ def Init_Basic_FlowEntries():
     #     pusher.set(flow1)
 
     logger.info("Basic flow entries pushed.")
+
+
+def runcommand(cmdline):
+    logger.info("Command line: " + cmdline)
+    output = os.popen(cmdline)
+    out = output.read()
+    logger.info("Execution result: " + out)
+
+    return out
 
 
