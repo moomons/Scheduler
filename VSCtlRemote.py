@@ -156,8 +156,6 @@ def Init_vsctl():
                 exit(0)
         logger.info("SEBF: ovs-vsctl config finished.")
 
-    exit(0)
-
 
 def vsctl_remote_db_port_clear_qos(ServerIP, vsctl_port, ethPORT):
     """ Deconfigure the QoS record from ethPort """
