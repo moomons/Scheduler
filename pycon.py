@@ -18,7 +18,7 @@ def main():
     logger.info('Starting up PyCon.')
 
     logger.info('Initializing Links and Bandwidth Matrices...')
-    # Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
+    Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
 
     # print 'Matrix of Network Links'
     # print DataFrame(Mat_Links).T.fillna(0)

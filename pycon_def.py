@@ -216,7 +216,8 @@ def Get_Current_Mbps():
     Lock_Get_Current_Bps.release()  # Unlock
 
     # Write the speed matrix to a log file for BW usage analysis
-    fileLogger.info("Current Mbps:" + str(Mat_BW_Current))
+    # MARK: Moved to other def
+    # fileLogger.info("Current Mbps:" + str(Mat_BW_Current))
 
     return Mat_BW_Current
 
@@ -256,6 +257,9 @@ def Get_Dijkstra_Path(start, end):
     for element in path_numerical:
         path[Counter] = List_SwitchAndHosts[element]
         Counter += 1
+
+    # Better matrix logging
+    fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
 
     return path
 
@@ -300,6 +304,9 @@ def Get_SEBF_Path(start, end, flow_size):
     for element in path_numerical:
         path[Counter] = List_SwitchAndHosts[element]
         Counter += 1
+
+    # Better matrix logging
+    fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
 
     return path
 
