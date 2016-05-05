@@ -76,7 +76,9 @@ def PushFlowMod(route, att, queue=0):
             flow1["actions"] = "output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
         elif queue == 1:
             # TODO: Need queuing for SEBF
-            flow1["actions"] = "set_queue=" + 1  # Can be hexadecimal (with leading 0x) or decimal
+            # queuenum: 0 for slow, 1 for fast. See def vsctl_remote_db_create() for more info.
+            flow1["actions"] = "set_queue=" + 0 + ",output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
+            # Can be hexadecimal (with leading 0x) or decimal
             # Ref: https://floodlight.atlassian.net/wiki/display/floodlightcontroller/Static+Flow+Pusher+API
         logger.debug(flow1)  # LOG
         pusher.set(flow1)
