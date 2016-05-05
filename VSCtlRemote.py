@@ -6,6 +6,7 @@ written by Ping Lu
 
 import os
 import re
+from pycon_cfg import *
 
 
 class VSCtlRemote:
@@ -119,6 +120,94 @@ class VSCtlRemote:
 
 
 
+
+
+def Init_vsctl():
+
+    # dict: {ServerIP: list of PORTs}
+    vsctl_port = 6640
+    DICT = {
+        "192.168.109.214": {"eth1", "eth2", "eth3", "eth4"},
+        "192.168.109.215": {"eth1", "eth2", "eth3", "eth4"},
+        "192.168.109.224": {"eth1", "eth2"},
+        "192.168.109.225": {"eth1", "eth2"},
+    }
+
+    # DICT = {
+    #     "192.168.101.1": {},
+    # }
+
+    # vsctl_remote_db_port_clear_qos("192.168.101.1", 6634, "s1-eth1")  # mininet, s1
+    # exit(0)
+
+    if CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
+        # Need to Deconfigure the QoS record from ethPort first before destroying the qos and queue
+        for ServerIP in DICT:
+            # print ServerIP
+            for ethPORT in DICT[ServerIP]:
+                # print ethPORT
+                vsctl_remote_db_port_clear_qos(ServerIP, vsctl_port, ethPORT)
+        for ServerIP in DICT:
+            # print ServerIP
+            vsctl_remote_db_clear(ServerIP, vsctl_port)
+            for ethPORT in DICT[ServerIP]:
+                # print ethPORT
+                vsctl_remote_db_create(ServerIP, vsctl_port, ethPORT)
+                exit(0)
+        logger.info("SEBF: ovs-vsctl config finished.")
+
+    exit(0)
+
+
+def vsctl_remote_db_port_clear_qos(ServerIP, vsctl_port, ethPORT):
+    """ Deconfigure the QoS record from ethPort """
+    cmdline = "ovs-vsctl --db=tcp:" + ServerIP + ":" + str(vsctl_port) + " clear port " + ethPORT + " qos"
+    out = runcommand(cmdline)
+
+
+def vsctl_remote_db_clear(ServerIP, vsctl_port):
+    """ Clear QoS and Queue on ServerIP """
+    cmdline = "ovs-vsctl --db=tcp:" + ServerIP + ":" + str(vsctl_port) + " --all destroy qos"
+    out = runcommand(cmdline)
+    cmdline = "ovs-vsctl --db=tcp:" + ServerIP + ":" + str(vsctl_port) + " --all destroy queue"
+    out = runcommand(cmdline)
+
+    # sudo ovs-vsctl clear port s1-eth1 qos
+    # sudo ovs-vsctl --all destroy qos -- --all destroy queue
+    #
+    # ovs-vsctl --db=tcp:192.168.109.215:6640 --all destroy qos -- --all destroy queue
+
+
+def vsctl_remote_db_create(ServerIP, vsctl_port, ethPORT):
+    """ Setup QoS and 2 Queues on ServerIP and this port """
+    qname = ServerIP[-3:]
+    cmdline = "ovs-vsctl --db=tcp:" + ServerIP + ":" + str(vsctl_port) + " -- " + \
+        "set port " + ethPORT + " qos=@newqos_" + str(vsctl_port) + " -- " + \
+        "--id=@newqos_" + str(vsctl_port) + " create qos type=linux-htb queues=0=@q_slow_" + str(vsctl_port) + "_" + qname + ",1=@q_fast_" + str(vsctl_port) + "_" + qname + " -- " + \
+        "--id=@q_slow_" + str(vsctl_port) + "_" + qname + " create queue other-config:min-rate=0 other-config:max-rate=1000000000 -- " + \
+        "--id=@q_fast_" + str(vsctl_port) + "_" + qname + " create queue other-config:min-rate=999000000 other-config:max-rate=1000000000"
+    #                                                                                          990000000 = 990,000,000B
+    # MARK: Change max-min rate here
+    out = runcommand(cmdline)
+
+    # Original Command:
+    # sudo ovs-vsctl --db=tcp:192.168.101.1:6643 -- \
+    # set port eth2 qos=@newqos -- \
+    # --id=@newqos create qos type=linux-htb queues=0=@queue_slow_0_215,1=@queue_fast_1_215 -- \
+    # --id=@queue_slow_0_215 create queue other-config:min-rate=0 other-config:max-rate=1000000000 -- \
+    # --id=@queue_fast_1_215 create queue other-config:min-rate=999000000 other-config:max-rate=1000000000
+    return 1
+
+
+def runcommand(cmdline):
+    import os
+    # import re
+    logger.info("Command line: " + cmdline)
+    output = os.popen(cmdline)
+    out = output.read()
+    logger.info("Command result: " + out)
+
+    return out
 
 
 
