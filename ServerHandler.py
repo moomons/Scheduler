@@ -64,18 +64,25 @@ def Process(data, sender_client_address):
     if 'srcPort' in data:
         # FL controller message
         for attempt in data['para_map'].split(','):
+            if Dict_RcvdData[attempt]['Timestamp_RcvdFL'] is not None:
+                logger.warning("Duplicate FL POST data for: " + attempt + ". Skipping.")
+                continue
+            Dict_RcvdData[attempt]['PROCESSED'] = 0
             Dict_RcvdData[attempt]['job'] = data['para_job']
             if 'ip_dst' in data:
                 Dict_RcvdData[attempt]['ip_dst'] = data['ip_dst']
             Dict_RcvdData[attempt]['tcp_src'] = data['srcPort']
             Dict_RcvdData[attempt]['reduce'] = data['para_reduce']
             Dict_RcvdData[attempt]['Timestamp_RcvdFL'] = datetime.now()  # Log
-            if Dict_RcvdData[attempt]['tcp_dst'] is not None:
+            if (Dict_RcvdData[attempt]['PROCESSED'] == 0) and (Dict_RcvdData[attempt]['tcp_dst'] is not None):
                 PerformRouting(Dict_RcvdData[attempt])
-                del Dict_RcvdData[attempt]
+                Dict_RcvdData[attempt]['PROCESSED'] = 1  # Replaces: del Dict_RcvdData[attempt]
     elif 'coflowId' in data:
         # MR message
         attempt = data['coflowId']
+        if Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] is not None:
+            logger.warning("Duplicate MR POST data for: " + attempt + ". Skipping.")
+            return
         spl = data['src'].split(':')
         if not len(spl) == 2:
             logger.error('Error when processing data: Invalid src param. Aborting.')
@@ -85,9 +92,9 @@ def Process(data, sender_client_address):
         Dict_RcvdData[attempt]['tcp_dst'] = int(spl[1])
         Dict_RcvdData[attempt]['flowLength'] = data['len']
         Dict_RcvdData[attempt]['Timestamp_RcvdHadoopMR'] = datetime.now()  # Log
-        if Dict_RcvdData[attempt]['tcp_src'] is not None:
+        if (Dict_RcvdData[attempt]['PROCESSED'] == 0) and (Dict_RcvdData[attempt]['tcp_src'] is not None):
             PerformRouting(Dict_RcvdData[attempt])
-            del Dict_RcvdData[attempt]
+            Dict_RcvdData[attempt]['PROCESSED'] = 1  # Replaces: del Dict_RcvdData[attempt]
     else:
         logger.error("Process: Invalid POST data (from neither FL nor MR")
 

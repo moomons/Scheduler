@@ -15,7 +15,8 @@ from VSCtlRemote import *
 
 
 def main():
-    logger.info('Starting up PyCon.')
+    logger.info('PyCon: Starting Up ...')
+    logger.warning('Please restart PyCon after restarting FL Controller because the flow entries will be wiped.')
 
     logger.info('Initializing Links and Bandwidth Matrices...')
     Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
