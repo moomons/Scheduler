@@ -102,7 +102,7 @@ def Init_Basic_FlowEntries():
     # ovs-ofctl -O OpenFlow13 add-flow tcp:192.168.109.215:6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500
     # FIRST RUN: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
     for ServerIP in DICT:
-        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500"
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500,normal"
         out = runcommand(cmdline)
         cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
         out = runcommand(cmdline)
