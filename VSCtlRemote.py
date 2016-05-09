@@ -123,27 +123,17 @@ class VSCtlRemote:
 
 
 def Init_vsctl():
-
-    # dict: {ServerIP: list of PORTs}
-    vsctl_port = 6640
-    DICT = {
-        "192.168.109.214": {"eth1", "eth2", "eth3", "eth4"},
-        "192.168.109.215": {"eth1", "eth2", "eth3", "eth4"},
-        "192.168.109.224": {"eth1", "eth2"},
-        "192.168.109.225": {"eth1", "eth2"},
-    }
-
     if CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
         # Need to Deconfigure the QoS record from ethPort first before destroying the qos and queue
-        for ServerIP in DICT:
+        for ServerIP in Dict_OVSToConfig:
             # print ServerIP
-            for ethPORT in DICT[ServerIP]:
+            for ethPORT in Dict_OVSToConfig[ServerIP]:
                 # print ethPORT
                 vsctl_remote_db_port_clear_qos(ServerIP, vsctl_port, ethPORT)
-        for ServerIP in DICT:
+        for ServerIP in Dict_OVSToConfig:
             # print ServerIP
             vsctl_remote_db_clear(ServerIP, vsctl_port)
-            for ethPORT in DICT[ServerIP]:
+            for ethPORT in Dict_OVSToConfig[ServerIP]:
                 # print ethPORT
                 vsctl_remote_db_create(ServerIP, vsctl_port, ethPORT)
         logger.info("SEBF: ovs-vsctl config finished.")

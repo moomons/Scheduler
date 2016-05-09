@@ -18,8 +18,8 @@ def main():
     logger.info('PyCon: Starting Up ...')
     logger.warning('Please restart PyCon after restarting FL Controller because the flow entries will be wiped.')
 
-    logger.info('Initializing Links and Bandwidth Matrices...')
-    Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
+    logger.info('Generating Links and Bandwidth Matrices ...')
+    # Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
 
     # print 'Matrix of Network Links'
     # print DataFrame(Mat_Links).T.fillna(0)
@@ -33,10 +33,13 @@ def main():
     # print 'Matrix of Current Bandwidth Capacity (in Mbps)'
     # print DataFrame(Mat_BW_Current).T.fillna(0)
 
-    logger.info('Initializing ovs-vsctl configurations ...')
+    logger.info('Configuring OVS Switches ...')
     Init_vsctl()
 
-    logger.info('Initializing basic flow entries ...')
+    logger.info('Pre-configuring flow tables ...')
+    PreconfigureFlowtable()
+
+    logger.info('Installing packet-in flow entries ...')
     Init_Basic_FlowEntries()
 
     # Start listening to the POST message from Hadoop MapReduce and FL

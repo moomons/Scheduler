@@ -22,6 +22,24 @@ class SchedulingAlgo(Enum):
 CurrentSchedulingAlgo = SchedulingAlgo.Weighted_Shortest_Path
 
 
+# dict: {ServerIP: list of PORTs}
+vsctl_port = 6640
+Dict_OVSToConfig = {
+    "192.168.109.214": {"eth1", "eth2", "eth3", "eth4"},
+    "192.168.109.215": {"eth1", "eth2", "eth3", "eth4"},
+    "192.168.109.224": {"eth1", "eth2"},
+    "192.168.109.225": {"eth1", "eth2"},
+}
+
+
+List_HostToConfig = [
+    '10.0.0.201',
+    '10.0.0.211',
+    '10.0.0.212',
+    '10.0.0.213',
+]
+
+
 # LOGGING
 
 import logging

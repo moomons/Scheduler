@@ -4,6 +4,7 @@ Reference: http://blog.csdn.net/fei_zodiac/article/details/24706313
 
 import httplib
 from pycon_def import *
+from pycon_cfg import *
 import os
 
 
@@ -60,7 +61,7 @@ def PushFlowMod(route, att, queue=0):
                 "name": "pycon-flow-" + str(FlowMod_n),
                 "switch": route[INDEX],
                 "cookie": "0",
-                "priority": "22222",
+                "priority": "4",
                 "active": "true",
                 "idle_timeout": "50",  # DEBUG 50. Release 5
                 "in_port": str(Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1]),
@@ -102,7 +103,7 @@ def Init_Basic_FlowEntries():
     # ovs-ofctl -O OpenFlow13 add-flow tcp:192.168.109.215:6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500
     # FIRST RUN: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
     for ServerIP in DICT:
-        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=2,tcp,tp_dst=13562,actions=controller:max_len=800"  # add drop later to avoid flooding
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=3,tcp,tp_dst=13562,actions=controller:max_len=800"  # add drop later to avoid flooding
         out = runcommand(cmdline)
         cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
         out = runcommand(cmdline)
@@ -126,6 +127,22 @@ def Init_Basic_FlowEntries():
     #     pusher.set(flow1)
 
     logger.info("Basic flow entries pushed.")
+
+
+def PreconfigureFlowtable():
+    """ Run the Flow Table Pre-configuration for the SDN system in order to boost initial response time """
+    # Copy a link_bw matrix from pycon or pycon_def
+    # Convert the matrix to numpy matrix
+
+    CountOfHosts = len(List_HostToConfig)
+
+    # for i = 0:CountOfHosts-2
+    #     for j = i+1:CountOfHosts-1
+    #         Calculate shorest path using link bw matrix
+    #         Assign flow entries, Print the result
+    #         multiply link on link bw matrix by 1.1
+
+    return 1
 
 
 def runcommand(cmdline):
