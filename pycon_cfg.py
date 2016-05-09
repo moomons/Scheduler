@@ -40,6 +40,14 @@ List_HostToConfig = [
 ]
 
 
+List_HostToInstallBasicEntries = [
+    "192.168.109.214",
+    "192.168.109.215",
+    "192.168.109.224",
+    "192.168.109.225",
+]
+
+
 # LOGGING
 
 import logging

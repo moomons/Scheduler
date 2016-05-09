@@ -87,46 +87,22 @@ def PushFlowMod(route, att, queue=0):
 
 def Init_Basic_FlowEntries():
     """ Initialize basic flow entries: CONTROLLER PACKET-IN """
-    # TODO: if possible, push flow entries like:
-    # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=49999,tcp,tp_dst=13562,actions=controller:max_len=1500 && sudo ovs-ofctl dump-flows datanet1
-    # ARP: sh ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP requests
 
-    # Simply copied the DICT from VSCtlRemote, actually we are just using the IP
-    DICT = {
-        "192.168.109.214": {"eth1", "eth2", "eth3", "eth4"},
-        "192.168.109.215": {"eth1", "eth2", "eth3", "eth4"},
-        "192.168.109.224": {"eth1", "eth2"},
-        "192.168.109.225": {"eth1", "eth2"},
-    }
+    # Push flow entries like:
+    # PACKETIN: sudo ovs-ofctl add-flow datanet1 priority=49999,tcp,tp_dst=13562,actions=controller:max_len=1500
+    # ARP: ovs-ofctl add-flow s1 dl_type=0x806,nw_proto=1,actions=flood // 0x806 for ARP packets, proto = 1 for ARP reqs
 
-    # Viable command:
+    # Command:
     # ovs-ofctl -O OpenFlow13 add-flow tcp:192.168.109.215:6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500
-    # FIRST RUN: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
-    for ServerIP in DICT:
-        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=3,tcp,tp_dst=13562,actions=controller:max_len=800"  # add drop later to avoid flooding
+    # Prerequisite: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
+
+    for ServerIP in List_HostToInstallBasicEntries:
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=3,tcp,tp_dst=13562,actions=controller:max_len=1000"  # add drop later to avoid flooding
         out = runcommand(cmdline)
-        cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
-        out = runcommand(cmdline)
+        # cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
+        # out = runcommand(cmdline)
 
-
-    # MARK: This is a failed attempt using FL StaticFlowPusher
-    # pusher = StaticFlowPusher(Floodlight_IP)  # Controller IP
-    # for element in Set_Switches_DPID:
-    #     # dl_type=0x806,nw_proto=1,actions=flood
-    #     flow1 = {
-    #         "name": "pycon-flow-ARP-" + element,
-    #         "switch": element,
-    #         # "cookie": "0",
-    #         "priority": "19767",
-    #         "active": "true",
-    #         "eth_type": "0x0806",  # ARP
-    #         # "ip_proto": "1",  # ICMPv4?
-    #         "actions": "flood"
-    #     }
-    #     logger.debug(flow1)  # LOG
-    #     pusher.set(flow1)
-
-    logger.info("Basic flow entries pushed.")
+    logger.info("Basic flow entries installed.")
 
 
 def PreconfigureFlowtable():
