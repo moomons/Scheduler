@@ -10,7 +10,7 @@ from enum import Enum
 # Configurations and global variables
 # IP and Port config
 # floodlight_host = '192.168.109.214'
-Floodlight_IP = '127.0.0.1'
+Floodlight_IP = '192.168.109.214'
 Floodlight_Port = 8080
 
 
@@ -19,7 +19,7 @@ class SchedulingAlgo(Enum):
     SEBF = 2
     More = 3
 
-CurrentSchedulingAlgo = SchedulingAlgo.SEBF
+CurrentSchedulingAlgo = SchedulingAlgo.Weighted_Shortest_Path
 
 
 # LOGGING
