@@ -60,7 +60,7 @@ def PushFlowMod(route, att, queue=0):
                 "name": "pycon-flow-" + str(FlowMod_n),
                 "switch": route[INDEX],
                 "cookie": "0",
-                "priority": "39767",
+                "priority": "22222",
                 "active": "true",
                 "idle_timeout": "50",  # DEBUG 50. Release 5
                 "in_port": str(Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1]),
@@ -102,7 +102,7 @@ def Init_Basic_FlowEntries():
     # ovs-ofctl -O OpenFlow13 add-flow tcp:192.168.109.215:6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500
     # FIRST RUN: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
     for ServerIP in DICT:
-        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=16666,tcp,tp_dst=13562,actions=controller:max_len=1500,normal"
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=2,tcp,tp_dst=13562,actions=controller:max_len=800"  # add drop later to avoid flooding
         out = runcommand(cmdline)
         cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
         out = runcommand(cmdline)
