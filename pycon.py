@@ -15,7 +15,7 @@ from VSCtlRemote import *
 
 
 def main():
-    logger.info('PyCon: Starting up ...')
+    logger.info('PyCon: Starting up')
     logger.warning('Please restart PyCon after restarting FL Controller because the flow entries will be wiped.')
 
     logger.info('Generating Links and Bandwidth Matrices ...')

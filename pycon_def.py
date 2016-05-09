@@ -13,7 +13,7 @@ by mons
 from collections import defaultdict
 import json
 import urllib2
-import pprint
+# import pprint
 from pandas import *
 from datetime import datetime, timedelta
 import threading
@@ -23,53 +23,20 @@ from scipy import *
 from pycon_cfg import *
 
 
-BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However beware of duplicates
-
-
-# MARK: The dict below is placed to mitigate the MAC-only problem (FL only adds MAC to its info panel) in our topology
-Dict_KnownMACtoIPv4 = {
-    'f8:0f:41:f4:2a:1b': '10.0.0.201',
-    'f8:0f:41:f6:63:41': '10.0.0.211',
-    'f8:0f:41:f6:68:4e': '10.0.0.212',
-    'f8:0f:41:f6:68:4b': '10.0.0.213',
-}
-
-# MARK: For mininet debugging
-# Dict_KnownMACtoIPv4 = {
-#     "00:00:00:00:00:01": "10.0.0.1",
-#     "00:00:00:00:00:02": "10.0.0.2",
-#     "00:00:00:00:00:03": "10.0.0.3",
-#     "00:00:00:00:00:04": "10.0.0.4",
-# }
-
-
-URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/topology/links/json|pjt
-URL_REST_API_host2switch_links = 'http://%s:%d/wm/device/' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/device/|pjt
-URL_REST_API_portdesc_BW = 'http://%s:%d/wm/core/switch/all/port-desc/json' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/core/switch/all/port-desc/json|pjt
-URL_REST_API_Current_BW = 'http://%s:%d/wm/statistics/bandwidth/all/all/json' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/statistics/bandwidth/all/all/json|pjt
-URL_REST_API_Flow_List = 'http://%s:%d/wm/staticflowpusher/list/all/json' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/staticflowpusher/list/all/json|pjt
-URL_REST_API_Flow_Mod = 'http://%s:%d/wm/staticflowpusher/json' % (Floodlight_IP, Floodlight_Port)
-# curl -X POST -d '{"switch": "00:00:00:00:00:00:00:02", "name":"test-mod-1", "cookie":"0", "priority":"33000", "in_port":"2","active":"true", "actions":"output=1"}' http://127.0.0.1:8080/wm/staticflowpusher/json
-URL_REST_API_Flow_Clear = 'http://%s:%d/wm/staticflowpusher/clear/all/json' % (Floodlight_IP, Floodlight_Port)
-# curl 127.0.0.1:8080/wm/staticflowpusher/clear/all/json|pjt
-
-
 Set_Switches_DPID = set()
 Mat_Links = defaultdict(lambda: defaultdict(lambda: None))
 Mat_SWHosts = defaultdict(lambda: defaultdict(lambda: None))
 Mat_BW_Cap = defaultdict(lambda: defaultdict(lambda: None))
 Mat_BW_Cap_MASK = defaultdict(lambda: defaultdict(lambda: None))
 
-
 Lock_Get_Current_Bps = threading.Lock()
 Mat_BW_Current = defaultdict(lambda: defaultdict(lambda: None))
 Mat_BW_Curr_LastUpd = datetime.now() - timedelta(10)
 
+Lock_Get_Current_Bps_Numpy = threading.Lock()
+Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(1, 1))  # MARK: Not sure whether this can be changed later without error
+List_SwitchAndHosts = []
+RevList = defaultdict(lambda: int)
 
 def Get_JSON_From_URL(url):
     try:
@@ -222,81 +189,69 @@ def Get_Current_Mbps():
     return Mat_BW_Current
 
 
-def Get_Dijkstra_Path(start, end):
-    """ Use Dijkstra to calculate a route. The weight is current bw. """
+def Get_Current_Mbps_Numpy():
+    """ Get Current Speed matrix in numpy format """
+
+    global Mat_BW_Curr_LastUpd, Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+    # if last updated in less than 2s, just return the old dict
+    if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:
+        return Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+
+    Lock_Get_Current_Bps_Numpy.acquire()  # Lock
 
     Mat_BW_Current = Get_Current_Mbps()
 
     length = len(Mat_BW_Current)
     Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
     List_SwitchAndHosts = ["" for x in range(length)]
-    Counter = 0
     RevList = defaultdict(lambda: int)
 
+    Counter = 0
     for L1 in Mat_BW_Cap_MASK:
         List_SwitchAndHosts[Counter] = L1
         RevList[L1] = Counter
         Counter += 1
+
+    Lock_Get_Current_Bps_Numpy.release()  # Unlock
+
+    return Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+
+
+def Get_Dijkstra_Path(start, end, flow_size=0):
+    """ Use Dijkstra to calculate a route. The weight is current bw. """
+
+    global Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+    Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList = Get_Current_Mbps_Numpy()
 
     # Check if the start and end is in the list
     if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
         logger.error('Error in Dijkstra: Invalid start or end point.')
         return []
 
-    for L1 in Mat_BW_Cap_MASK:
-        L2 = Mat_BW_Cap_MASK[L1]
-        for L3 in L2:
-            if L2[L3] > 0.0:
-                Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
+    if CurrentSchedulingAlgo == SchedulingAlgo.WSP:
+        for L1 in Mat_BW_Cap_MASK:
+            L2 = Mat_BW_Cap_MASK[L1]
+            for L3 in L2:
+                if L2[L3] > 0.0:
+                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
 
-    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
-    path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])
+        G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
+    elif CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
+        for L1 in Mat_BW_Cap_MASK:
+            L2 = Mat_BW_Cap_MASK[L1]
+            for L3 in L2:
+                if L2[L3] > 0.0:
+                    # Get remaining MB/s
+                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
 
-    path = ['' for x in range(len(path_numerical))]
-    Counter = 0
-    for element in path_numerical:
-        path[Counter] = List_SwitchAndHosts[element]
-        Counter += 1
+        Mat_FlSize_DIV_BW_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
+        Mat_FlSize_DIV_BW_Numpy[where(isinf(Mat_FlSize_DIV_BW_Numpy))] = 0.0  # Replace Inf with zeros
 
-    # Better matrix logging
-    fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
-
-    return path
-
-
-# TODO: Half way there
-def Get_SEBF_Path(start, end, flow_size):
-    """ Use SEBF to plan a route and limit the flow rate. flow_size is in Byte """
-
-    Mat_BW_Current = Get_Current_Mbps()  # This result is in Mbps
-
-    length = len(Mat_BW_Current)
-    Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
-    List_SwitchAndHosts = ["" for x in range(length)]
-    Counter = 0
-    RevList = defaultdict(lambda: int)
-
-    for L1 in Mat_BW_Cap_MASK:
-        List_SwitchAndHosts[Counter] = L1
-        RevList[L1] = Counter
-        Counter += 1
-
-    # Check if the start and end is in the list
-    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
-        logger.error('Error in SEBF-Dijkstra: Invalid start or end point.')
+        G = nx.from_numpy_matrix(Mat_FlSize_DIV_BW_Numpy, create_using=nx.DiGraph())
+    else:
+        logger.error("Unknown Algo.")
         return []
 
-    for L1 in Mat_BW_Cap_MASK:
-        L2 = Mat_BW_Cap_MASK[L1]
-        for L3 in L2:
-            if L2[L3] > 0.0:
-                # Get remaining MB/s
-                Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
-
-    Mat_FlSize_DIV_BW_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
-    Mat_FlSize_DIV_BW_Numpy[where(isinf(Mat_FlSize_DIV_BW_Numpy))] = 0.0  # Replace Inf with zeros
-
-    G = nx.from_numpy_matrix(Mat_FlSize_DIV_BW_Numpy, create_using=nx.DiGraph())
     path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])
 
     path = ['' for x in range(len(path_numerical))]
@@ -309,5 +264,11 @@ def Get_SEBF_Path(start, end, flow_size):
     fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
 
     return path
+
+
+# Almost the same as Get_Dijkstra_Path()
+def Get_SEBF_Path(start, end, flow_size):
+    """ Use SEBF to plan a route and limit the flow rate. flow_size is in Byte """
+    return Get_Dijkstra_Path(start, end, flow_size)
 
 
