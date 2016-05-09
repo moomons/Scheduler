@@ -1,7 +1,7 @@
 
 """
 
-Stores some configurations and loggers for PyCon
+Stores configs and loggers for PyCon
 
 """
 
@@ -9,7 +9,6 @@ from enum import Enum
 
 # Configurations and global variables
 # IP and Port config
-# floodlight_host = '192.168.109.214'
 Floodlight_IP = '192.168.109.214'
 Floodlight_Port = 8080
 
@@ -21,9 +20,7 @@ class SchedulingAlgo(Enum):
 
 CurrentSchedulingAlgo = SchedulingAlgo.WSP
 
-
 BEGIN = 0  # Set to -3 if you want to have pretty matrix debug output. However beware of duplicates
-
 
 # MARK: The dict below is placed to mitigate the MAC-only problem (FL only adds MAC to its info panel) in our topology
 Dict_KnownMACtoIPv4 = {
@@ -40,7 +37,6 @@ Dict_KnownMACtoIPv4 = {
 #     "00:00:00:00:00:03": "10.0.0.3",
 #     "00:00:00:00:00:04": "10.0.0.4",
 # }
-
 
 URL_REST_API_switch_links = 'http://%s:%d/wm/topology/links/json' % (Floodlight_IP, Floodlight_Port)
 # curl 127.0.0.1:8080/wm/topology/links/json|pjt
@@ -67,14 +63,12 @@ Dict_OVSToConfig = {
     "192.168.109.225": {"eth1", "eth2"},
 }
 
-
 List_HostToConfig = [
     '10.0.0.201',
     '10.0.0.211',
     '10.0.0.212',
     '10.0.0.213',
 ]
-
 
 List_HostToInstallBasicEntries = [
     "192.168.109.214",

@@ -2,9 +2,7 @@
 
 PyCon
 
-Functions and configs
-
-Stores most global settings and functions
+Stores most main functions
 
 by mons
 
