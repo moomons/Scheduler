@@ -38,7 +38,10 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         # logger.info(rawdata)
         # logger.info(type(rawdata))
 
-        data = json.loads(rawdata)
+        try:
+            data = json.loads(rawdata)
+        except ValueError:
+            print 'Oops'
         logger.info("Got POST data:")
         logger.info(data)
 
