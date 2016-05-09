@@ -12,6 +12,7 @@ Completely rewritten by mons. Works with modified Floodlight and Hadoop MR
 
 from ServerHandler import *
 from VSCtlRemote import *
+from RatePolling import *
 
 
 def main():
@@ -41,6 +42,13 @@ def main():
 
     logger.info('Installing packet-in flow entries ...')
     Init_Basic_FlowEntries()
+
+    # Monitor port rate
+    logger.info('Starting flow rate polling thread ...')
+    thread_poll = MyThread(Get_Current_Mbps_Numpy, [2], "RX/TX Calc")
+    thread_poll.isDaemon()
+    thread_poll.setDaemon(True)
+    thread_poll.start()
 
     # Start listening to the POST message from Hadoop MapReduce and FL
     logger.info('HTTP Server listening at ' + Server_IP + ':' + str(Server_Port))

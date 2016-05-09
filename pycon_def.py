@@ -35,6 +35,8 @@ Lock_Get_Current_Bps_Numpy = threading.Lock()
 Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(1, 1))  # MARK: Not sure whether this can be changed later without error
 List_SwitchAndHosts = []
 RevList = defaultdict(lambda: int)
+Mat_BW_Curr_LastUpd_Numpy = Mat_BW_Curr_LastUpd
+
 
 def Get_JSON_From_URL(url):
     try:
@@ -190,14 +192,15 @@ def Get_Current_Mbps():
 def Get_Current_Mbps_Numpy():
     """ Get Current Speed matrix in numpy format """
 
-    global Mat_BW_Curr_LastUpd, Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+    global Mat_BW_Curr_LastUpd_Numpy, Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
     # if last updated in less than 2s, just return the old dict
-    if (datetime.now() - Mat_BW_Curr_LastUpd).total_seconds() < 2:
+    if (datetime.now() - Mat_BW_Curr_LastUpd_Numpy).total_seconds() < 2:
         return Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
 
     Lock_Get_Current_Bps_Numpy.acquire()  # Lock
 
     Mat_BW_Current = Get_Current_Mbps()
+    Mat_BW_Curr_LastUpd_Numpy = datetime.now()
 
     length = len(Mat_BW_Current)
     Mat_BW_Curr_DJ_Numpy = np.zeros(shape=(length, length))
@@ -211,6 +214,9 @@ def Get_Current_Mbps_Numpy():
         Counter += 1
 
     Lock_Get_Current_Bps_Numpy.release()  # Unlock
+
+    # Better matrix logging
+    fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
 
     return Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
 
@@ -257,9 +263,6 @@ def Get_Dijkstra_Path(start, end, flow_size=0):
     for element in path_numerical:
         path[Counter] = List_SwitchAndHosts[element]
         Counter += 1
-
-    # Better matrix logging
-    fileLogger.info("Current Mbps matrix:\n" + str(Mat_BW_Curr_DJ_Numpy))
 
     return path
 
