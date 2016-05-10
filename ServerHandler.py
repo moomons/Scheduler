@@ -119,9 +119,9 @@ def PerformRouting(att):
     # MARK: Different scheduling algorithm will result in different route!
     route = []
     if CurrentSchedulingAlgo == SchedulingAlgo.Weighted_Shortest_Path:
-        route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'])  # Change this func when testing diff routing strategy
+        route = Get_Dijkstra_Path(att['ip_src'], att['ip_dst'], CurrentSchedulingAlgo)  # Change this func when testing diff routing strategy
     elif CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
-        route = Get_SEBF_Path(att['ip_src'], att['ip_dst'], att['flowLength'])
+        route = Get_SEBF_Path(att['ip_src'], att['ip_dst'], CurrentSchedulingAlgo, att['flowLength'])
 
     logger.info('Route: ' + str(route))
     if len(route) < 3:
@@ -135,5 +135,4 @@ def PerformRouting(att):
         return PushFlowMod(route, att, 1)
     else:
         logger.error("Unknown Routing Algo. Aborting.")
-
 

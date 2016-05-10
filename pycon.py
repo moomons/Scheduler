@@ -20,7 +20,7 @@ def main():
     logger.warning('Please restart PyCon after restarting FL Controller because the flow entries will be wiped.')
 
     logger.info('Generating Links and Bandwidth Matrices ...')
-    # Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
+    Mat_Links, Mat_SWHosts, Mat_BW_Cap, Mat_BW_Cap_MASK = Init_Mat_Links_And_BW()
 
     # print 'Matrix of Network Links'
     # print DataFrame(Mat_Links).T.fillna(0)

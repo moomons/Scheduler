@@ -189,7 +189,7 @@ def Get_Current_Mbps():
     return Mat_BW_Current
 
 
-def Get_Current_Mbps_Numpy():
+def Get_Current_Mbps_Numpy(InputSchAlgo, flow_size=0):
     """ Get Current Speed matrix in numpy format """
 
     global Mat_BW_Curr_LastUpd_Numpy, Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
@@ -207,11 +207,33 @@ def Get_Current_Mbps_Numpy():
     List_SwitchAndHosts = ["" for x in range(length)]
     RevList = defaultdict(lambda: int)
 
+    # Prepare 2 lists to store host/switch no.
     Counter = 0
     for L1 in Mat_BW_Cap_MASK:
         List_SwitchAndHosts[Counter] = L1
         RevList[L1] = Counter
         Counter += 1
+
+    if InputSchAlgo == SchedulingAlgo.WSP:
+        logger.info("Using WSP Algo.")
+        for L1 in Mat_BW_Cap_MASK:
+            L2 = Mat_BW_Cap_MASK[L1]
+            for L3 in L2:
+                if L2[L3] > 0.0:
+                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
+    elif InputSchAlgo == SchedulingAlgo.SEBF:
+        logger.info("Using SEBF Algo.")
+        for L1 in Mat_BW_Cap_MASK:
+            L2 = Mat_BW_Cap_MASK[L1]
+            for L3 in L2:
+                if L2[L3] > 0.0:
+                    # Get remaining MB/s
+                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
+        Mat_BW_Curr_DJ_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
+        Mat_BW_Curr_DJ_Numpy[where(isinf(Mat_BW_Curr_DJ_Numpy))] = 0.0  # Replace Inf with zeros
+    else:
+        logger.error("Unknown Algo!")
+        return []
 
     Lock_Get_Current_Bps_Numpy.release()  # Unlock
 
@@ -221,43 +243,22 @@ def Get_Current_Mbps_Numpy():
     return Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
 
 
-def Get_Dijkstra_Path(start, end, flow_size=0):
-    """ Use Dijkstra to calculate a route. The weight is current bw. """
+def Get_Dijkstra_Path(start, end, ScheAlgo, flow_size=0):
+    """ Use Dijkstra to calculate a route. The weight is the current bandwidth. """
 
     global Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
-    Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList = Get_Current_Mbps_Numpy()
+    Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList = \
+        Get_Current_Mbps_Numpy(ScheAlgo, flow_size)
 
     # Check if the start and end is in the list
     if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
         logger.error('Error in Dijkstra: Invalid start or end point.')
         return []
 
-    if CurrentSchedulingAlgo == SchedulingAlgo.WSP:
-        for L1 in Mat_BW_Cap_MASK:
-            L2 = Mat_BW_Cap_MASK[L1]
-            for L3 in L2:
-                if L2[L3] > 0.0:
-                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Current[L1][L3] + 1.0
+    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())  # Create graph
+    path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])  # Run Dijkstra
 
-        G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())
-    elif CurrentSchedulingAlgo == SchedulingAlgo.SEBF:
-        for L1 in Mat_BW_Cap_MASK:
-            L2 = Mat_BW_Cap_MASK[L1]
-            for L3 in L2:
-                if L2[L3] > 0.0:
-                    # Get remaining MB/s
-                    Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
-
-        Mat_FlSize_DIV_BW_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
-        Mat_FlSize_DIV_BW_Numpy[where(isinf(Mat_FlSize_DIV_BW_Numpy))] = 0.0  # Replace Inf with zeros
-
-        G = nx.from_numpy_matrix(Mat_FlSize_DIV_BW_Numpy, create_using=nx.DiGraph())
-    else:
-        logger.error("Unknown Algo.")
-        return []
-
-    path_numerical = nx.dijkstra_path(G, RevList[start], RevList[end])
-
+    # Convert the numerical result to Node(SW/Host)
     path = ['' for x in range(len(path_numerical))]
     Counter = 0
     for element in path_numerical:
@@ -268,8 +269,8 @@ def Get_Dijkstra_Path(start, end, flow_size=0):
 
 
 # Almost the same as Get_Dijkstra_Path()
-def Get_SEBF_Path(start, end, flow_size):
+def Get_SEBF_Path(start, end, ScheAlgo, flow_size):
     """ Use SEBF to plan a route and limit the flow rate. flow_size is in Byte """
-    return Get_Dijkstra_Path(start, end, flow_size)
+    return Get_Dijkstra_Path(start, end, ScheAlgo, flow_size)
 
 
