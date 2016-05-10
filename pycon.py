@@ -38,14 +38,14 @@ def main():
     Init_vsctl()
 
     logger.info('Pre-configuring flow tables ...')
-    PreconfigureFlowtable()
+    PreconfigureFlowtable(Mat_BW_Cap)
 
     logger.info('Installing packet-in flow entries ...')
     Init_Basic_FlowEntries()
 
     # Monitor port rate
     logger.info('Starting flow rate polling thread ...')
-    thread_poll = MyThread(Get_Current_Mbps_Numpy, [2], "RX/TX Calc")
+    thread_poll = MyThread(BandwidthDaemon, [2], "BW Daemon")
     thread_poll.isDaemon()
     thread_poll.setDaemon(True)
     thread_poll.start()

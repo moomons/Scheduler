@@ -39,7 +39,7 @@ class StaticFlowPusher(object):
         conn.request(action, path, body, headers)
         response = conn.getresponse()
         ret = (response.status, response.reason, response.read())
-        print ret
+        logger.info("Floodlight response: " + str(ret))
         conn.close()
 
         # TODO: Should log this to file, controlled by a global flag
@@ -58,12 +58,10 @@ def PushFlowMod(route, att, queue=0, noport=0):
         # Setup the Flow Entry for route[INDEX] to route[INDEX+1]
         if INDEX < len(route) - 1:
             flow1 = {
-                "name": "pycon-flow-" + str(FlowMod_n),
                 "switch": route[INDEX],
                 "cookie": "0",
-                "priority": "3",
+                # "priority": "2",
                 "active": "true",
-                "idle_timeout": "50",  # DEBUG 50. Release 5
                 "in_port": str(Mat_SWHosts[route[INDEX - 1]][route[INDEX]][1]),
                 "eth_type": "0x0800",  # IPv4
                 "ip_proto": "6",  # TCP
@@ -72,8 +70,14 @@ def PushFlowMod(route, att, queue=0, noport=0):
                 # "ip_tos": "1",
             }
             if noport == 0:
+                flow1["name"] = "pycon-flow-" + str(FlowMod_n)
+                flow1["priority"] = "4"
+                flow1["idle_timeout"] = "50"  # DEBUG 50. Release 5
                 flow1['tcp_src'] = att['tcp_src']
                 flow1['tcp_dst'] = att['tcp_dst']
+            else:
+                flow1["name"] = "PyCon-PreConfig-" + str(FlowMod_n)
+                flow1["priority"] = "2"
         if queue == 0:
             flow1["actions"] = "output=" + str(Mat_SWHosts[route[INDEX]][route[INDEX + 1]][0])
         elif queue == 1:
@@ -98,7 +102,7 @@ def Init_Basic_FlowEntries():
     # Prerequisite: sudo ovs-ofctl set-controller BRIDGE tcp:192.168.109.214:6653 ptcp:6666
 
     for ServerIP in List_HostToInstallBasicEntries:
-        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=2,tcp,tp_dst=13562,actions=controller:max_len=1000"  # add drop later to avoid flooding
+        cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ServerIP + ":6666 priority=3,tcp,tp_dst=13562,actions=controller:max_len=1000"  # add drop later to avoid flooding
         out = runcommand(cmdline)
         # cmdline = "ovs-ofctl -O OpenFlow13 dump-flows tcp:" + ServerIP + ":6666"
         # out = runcommand(cmdline)
@@ -106,11 +110,11 @@ def Init_Basic_FlowEntries():
     logger.info("Basic flow entries installed.")
 
 
-def PreconfigureFlowtable():
+def PreconfigureFlowtable(Mat_BW_Cap):
     """ Run the Flow Table Pre-configuration for the SDN system in order to boost initial response time """
 
     # Convert the matrix to numpy matrix
-    length = len(Mat_BW_Current)
+    length = len(Mat_BW_Cap)
     Mat_BW_Numpy = np.zeros(shape=(length, length))
     List_SwitchAndHosts = ["" for x in range(length)]
     RevList = defaultdict(lambda: int)
@@ -133,8 +137,16 @@ def PreconfigureFlowtable():
     for i in range(0, CountOfHosts-1):
         for j in range(i+1, CountOfHosts):
             # Calculate WSP
-            G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())  # Create graph
-            path_numerical = nx.dijkstra_path(G, RevList[List_HostToConfig[i]], RevList[List_HostToConfig[j]])  # Run Dijkstra
+            G = nx.from_numpy_matrix(Mat_BW_Numpy, create_using=nx.DiGraph())  # Create graph
+            src_idx = RevList[List_HostToConfig[i]]
+            dst_idx = RevList[List_HostToConfig[j]]
+            path_numerical = nx.dijkstra_path(G, src_idx, dst_idx)  # Run Dijkstra
+
+            # Update the path selected
+            for id in range(len(path_numerical)-1):
+                # print id
+                Mat_BW_Numpy[path_numerical[id]][path_numerical[id + 1]] *= 1.1
+                # print Mat_BW_Numpy[path_numerical[id]][path_numerical[id+1]]
 
             # Convert the numerical result to Node(SW/Host)
             path = ['' for x in range(len(path_numerical))]
@@ -145,9 +157,9 @@ def PreconfigureFlowtable():
 
             logger.info('Setting up route: ' + str(path))
             att = {}
-            att['tcp_src'] = path[0]
-            att['tcp_dst'] = path[-1]
-            PushFlowMod(path, att)
+            att['ip_src'] = path[0]
+            att['ip_dst'] = path[-1]
+            PushFlowMod(path, att, 0, 1)
 
     # Pseudocode for this:
     # for i = 0:CountOfHosts-2
@@ -163,7 +175,8 @@ def runcommand(cmdline):
     logger.info("Command line: " + cmdline)
     output = os.popen(cmdline)
     out = output.read()
-    logger.info("Execution result: " + out)
+    if len(out) > 0:
+        logger.info("Execution result: " + out)
 
     return out
 

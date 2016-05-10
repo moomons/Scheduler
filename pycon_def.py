@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import threading
 import networkx as nx
 import numpy as np
+import time
 from scipy import *
 from pycon_cfg import *
 
@@ -185,8 +186,16 @@ def Get_Current_Mbps():
     # Write the speed matrix to a log file for BW usage analysis
     # MARK: Moved to other def
     # fileLogger.info("Current Mbps:" + str(Mat_BW_Current))
+    logger.info("Mat_BW_Current updated.")
 
     return Mat_BW_Current
+
+
+def BandwidthDaemon(interval):
+    logger.info("Daemon thread started.")
+    while True:
+        Get_Current_Mbps()
+        time.sleep(interval)
 
 
 def Get_Current_Mbps_Numpy(InputSchAlgo, flow_size=0):
@@ -229,8 +238,9 @@ def Get_Current_Mbps_Numpy(InputSchAlgo, flow_size=0):
                 if L2[L3] > 0.0:
                     # Get remaining MB/s
                     Mat_BW_Curr_DJ_Numpy[RevList[L1]][RevList[L3]] = Mat_BW_Cap[L1][L3] - Mat_BW_Current[L1][L3] / 8.0
-        Mat_BW_Curr_DJ_Numpy = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
-        Mat_BW_Curr_DJ_Numpy[where(isinf(Mat_BW_Curr_DJ_Numpy))] = 0.0  # Replace Inf with zeros
+        Mat_BW_Curr_DJ_Numpy_DIV = flow_size / 1000000. / Mat_BW_Curr_DJ_Numpy
+        Mat_BW_Curr_DJ_Numpy_DIV[where(isinf(Mat_BW_Curr_DJ_Numpy_DIV))] = 0.0  # Replace Inf with zeros
+        Mat_BW_Curr_DJ_Numpy = Mat_BW_Curr_DJ_Numpy_DIV
     else:
         logger.error("Unknown Algo!")
         return []
