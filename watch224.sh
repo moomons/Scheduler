@@ -7,16 +7,19 @@ cyan="\033[36m"
 underline="\033[4m"
 threshold=60000
 ovsip=(192.168.109.214 192.168.109.215 192.168.109.224 192.168.109.225)
+
+echo "Starting Watcher."
 LOG_FILE="watch.log"
 exec 3>&1 1>>${LOG_FILE} 2>&1
 # log ref: http://stackoverflow.com/a/18462920/5676271
 
-while; do
+while :
+do
     echo -e $bold$greentext"Time: "$(date +"%H:%M:%S")$normal | tee /dev/fd/3
     for ip in "${ovsip[@]}"; do
-        echo -e $bold$underline"On switch $ip:"#normal | tee /dev/fd/3
-        input_all=$(ovs-ofctl -O OpenFlow13 dump-flows tcp:$ip:6666)
-        input=$(echo $input_all | grep priority=1)  # Only P1
+        echo -e $bold$underline"On switch $ip:"$normal | tee /dev/fd/3
+        input_all=$(ovs-ofctl -O OpenFlow13 dump-flows tcp:$ip:6666 | grep priority=)
+        input=$(echo -e "$input_all" | grep priority=1)  # Only P1
         echo -e "$input_all" | grep n_packets= | tee /dev/fd/3
 
         counter=0
@@ -41,6 +44,7 @@ while; do
         fi
 
     done
+    echo "Done. Waiting for next loop."
     sleep 2
 done
 
