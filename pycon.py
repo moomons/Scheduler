@@ -13,6 +13,7 @@ Completely rewritten by mons. Works with modified Floodlight and Hadoop MR
 from ServerHandler import *
 from VSCtlRemote import *
 from RatePolling import *
+from RunTest import *
 
 
 def main():
@@ -40,24 +41,26 @@ def main():
     logger.info('Pre-configuring flow tables ...')
     PreconfigureFlowtable(Mat_BW_Cap)
 
-    logger.info('Installing packet-in flow entries ...')
-    Init_Basic_FlowEntries()
+    logger.info('Running Offline(Static) Test ...')
 
-    # Monitor port rate
-    logger.info('Starting flow rate polling thread ...')
-    thread_poll = MyThread(BandwidthDaemon, [2], "BW Daemon")
-    thread_poll.isDaemon()
-    thread_poll.setDaemon(True)
-    thread_poll.start()
-
-    # Start listening to the POST message from Hadoop MapReduce and FL
-    logger.info('HTTP Server listening at ' + Server_IP + ':' + str(Server_Port))
-    httpd = SocketServer.TCPServer((Server_IP, Server_Port), ServerHandler)
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        # Can do something here
-        logger.info('Quitting.')
+    # logger.info('Installing packet-in flow entries ...')
+    # Init_Basic_FlowEntries()
+    #
+    # # Monitor port rate
+    # logger.info('Starting flow rate polling thread ...')
+    # thread_poll = MyThread(BandwidthDaemon, [2], "BW Daemon")
+    # thread_poll.isDaemon()
+    # thread_poll.setDaemon(True)
+    # thread_poll.start()
+    #
+    # # Start listening to the POST message from Hadoop MapReduce and FL
+    # logger.info('HTTP Server listening at ' + Server_IP + ':' + str(Server_Port))
+    # httpd = SocketServer.TCPServer((Server_IP, Server_Port), ServerHandler)
+    # try:
+    #     httpd.serve_forever()
+    # except KeyboardInterrupt:
+    #     # Can do something here
+    #     logger.info('Quitting.')
 
 
 if __name__ == '__main__':
