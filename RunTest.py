@@ -22,7 +22,7 @@ import os
 from pprint import pprint
 from enum import Enum
 from pycon_def import GetPathList
-from pycon_def import Mat_BW_Cap
+from pycon_def import Mat_BW_Cap, Mat_BW_Cap_MASK
 
 
 class FlowType(Enum):
@@ -72,11 +72,18 @@ ListOfFlows_LowLatency = []
 ListOfFlows_HighBandwidth = []
 
 # Mat_BW_Cap
+Mat_BW_Cap_Original = Mat_BW_Cap
 Mat_BW_Cap_Remain = Mat_BW_Cap
-Mat_Link_Share = Mat_BW_Cap
+# Mat_Link_Share = Mat_BW_Cap
+Mat_BW_LL_OccupiedBW_Offline = defaultdict(lambda: defaultdict(lambda: 0))
+Mat_BW_LL_OccupiedFlowNo_Offline = defaultdict(lambda: defaultdict(lambda: []))
+
+List_AcceptedFlow_LowLatency = []
+List_AcceptedFlow_HighBandwidth = []
 
 
 def GenerateAndSortListOfFlows():
+    """ Create a complete list of flow commands from the configs. Holy crap """
     global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
 
     for OnePair in List_SRC_DST_Group:
@@ -130,21 +137,70 @@ def GenerateAndSortListOfFlows():
     ListOfFlows_LowLatency = sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'], reversed=True)
     ListOfFlows_HighBandwidth = sorted(ListOfFlows_HighBandwidth, key=lambda k: k['weight'], reversed=True)
 
+
+def GetPathDelay(path, bwoffset=0):
+    """ Get the delay from M/M/1 formula for the path (Designed for Low Latency Flows) """
+    assert(len(path) >= 3)
+    pathdelay = 0.0
+    for i in range(1, len(path) - 1):
+        linkdelay = 1.0 / (Mat_BW_Cap_Original[path[i]][path[i + 1]] - Mat_BW_LL_OccupiedBW_Offline[path[i]][path[i + 1]] - bwoffset)
+        pathdelay += linkdelay
+
+    return pathdelay
+
+
 def GetRemainingBandwidthAndDelay(path, calculate_delay=False):
+    """ Offline algo function. Online algo should directly use Floodlight output(theoretically) """
     assert(len(path) >= 3)
     bottleneckbandwidth = Mat_BW_Cap_Remain[path[0]][path[1]]
-    for i in range(1, len(path)-1):
-        rembandwidthonthispath = Mat_BW_Cap_Remain[path[i]][path[i+1]]
+    for i in range(1, len(path) - 1):
+        rembandwidthonthispath = Mat_BW_Cap_Remain[path[i]][path[i + 1]]
         if rembandwidthonthispath < bottleneckbandwidth:
             bottleneckbandwidth = rembandwidthonthispath
 
-    delay = 0
+    delay = 0.0
     if calculate_delay:
-        delay = 1
+        delay = GetPathDelay(path)
 
     return bottleneckbandwidth, delay
 
+
+def CheckUpdatedDelay(F_LL):
+    assert(F_LL['delay'] is not None)
+    bwoffset = F_LL['bandwidth']
+    for acceptedll in List_AcceptedFlow_LowLatency:
+        if GetPathDelay(acceptedll['path'], bwoffset) > acceptedll['delay']:
+            # if any existing LL flow's delay would exceed, we can't deploy the new flow! Erh
+            return False
+
+    return True
+
+
+def AddFlow(flow, IsLowLatencyFlow=False):
+    assert(flow['path'] is not None)
+    path = flow['path']
+    bandwidth = flow['actual_bandwidth']
+    assert(bandwidth is not None)
+
+    if IsLowLatencyFlow:  # LowLatency Flow
+        idx = len(List_AcceptedFlow_LowLatency)
+        List_AcceptedFlow_LowLatency.append(flow)  # Add the flow to the accepted list, congrats!
+        for i in range(0, len(path) - 1):
+            Mat_BW_LL_OccupiedFlowNo_Offline[path[i]][path[i + 1]].append(idx)  # Add to the LL share link
+            Mat_BW_LL_OccupiedFlowNo_Offline[path[i]][path[i + 1]] += bandwidth
+            Mat_BW_Cap_Remain[path[i]][path[i + 1]] -= bandwidth
+            assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)
+    else:                 # HighBandwidth Flow
+        idx = len(List_AcceptedFlow_HighBandwidth)
+        List_AcceptedFlow_HighBandwidth.append(flow)  # Add the flow to the accepted list, congrats!
+        for i in range(0, len(path) - 1):
+            Mat_BW_Cap_Remain[path[i]][path[i + 1]] -= bandwidth  # Occupy the bandwidth
+            assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
+
+
 def RunStatic():
+    """ Entry function to start the static algorithm simulation """
+
     # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
 
     # TODO: Gen config list for ITGController from List_SRC_DST and Flow_To_Generate_Per_SRCDSTPair
@@ -160,9 +216,6 @@ def RunStatic():
     Stat_Accepted = 0
     Stat_Rejected = 0
 
-    List_AcceptedLL = []
-    List_AcceptedHB = []
-
     for F_LL in ListOfFlows_LowLatency:
         logger.info(F_LL)
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
@@ -170,9 +223,13 @@ def RunStatic():
             bw_rem, delay = GetRemainingBandwidthAndDelay(viable_path, True)  # Note: delay in us, bw_rem in Mbps
             if F_LL['bandwidth'] <= bw_rem and delay <= F_LL['delay'] and CheckUpdatedDelay(F_LL):
                 # Basic req okay. Check other LL flow delay req.
-                AddFlow_LL(F_LL)
+                F_LL['path'] = viable_path
+                F_LL['actual_bandwidth'] = F_LL['bandwidth']
+                AddFlow(F_LL, True)
+                break
 
     for F_HB in ListOfFlows_HighBandwidth:
+        List_WaitingList = []
         logger.info(F_HB)
 
     # TODO: Gen ITGController config-file
