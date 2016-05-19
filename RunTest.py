@@ -16,9 +16,12 @@
   1x High Bandwidth flow: 200 Mbps each (fixed)
 
 """
+from collections import defaultdict
 from pycon_cfg import *
 import os
+from pprint import pprint
 from enum import Enum
+
 
 
 class FlowType(Enum):
@@ -57,12 +60,10 @@ List_SRC_DST_Group = [
 ]
 
 Flow_To_Generate_Per_SRCDSTPair = [
-    # [FlowType, alpha/beta, Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [FlowType.LowLatency, 0.1, 8, 0, 1000],
-    [FlowType.HighBandwidth, 0.1, 500, 300, 0],
+    # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
+    [2, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.HighBandwidth, 0.1, 500, 300, 0]],
 ]
-FlowCount_LowLatency = 2  # MARK: Set to 80
-FlowCount_HighBandwidth = 1
 
 
 def RunStatic():
@@ -70,15 +71,70 @@ def RunStatic():
 
     # TODO: Gen config list for ITGController from List_SRC_DST and Flow_To_Generate_Per_SRCDSTPair
     # MARK: Debugging, just use first pair in List_SRC_DST
+
+    # DictOfFlows_LowLatency = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 8, 'delay': 1000}]
+    # DictOfFlows_HighBandwidth = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 500, 'minbandwidth': 250}]
+    ListOfFlows_LowLatency = []
+    ListOfFlows_HighBandwidth = []
+
+    # Generate ListOfFlows
     for OnePair in List_SRC_DST_Group:
         source = OnePair[0]
         dests = OnePair[1]
+
         for dest in dests:
             logger.info('Source: ' + source + ', Destination: ' + dest)
             if source == dest:
                 logger.info('Skipping same source/dest')
                 continue
-        break
+            for flow in Flow_To_Generate_Per_SRCDSTPair:
+                times = flow[0]
+                params = flow[1]
+                weight = params[1]
+                bandwidth = params[2]
+
+                flowdict = defaultdict(lambda: None)
+                flowdict['weight'] = weight
+                flowdict['srcip'] = source
+                flowdict['dstip'] = dest
+                flowdict['bandwidth'] = bandwidth
+
+                if params[0] == FlowType.LowLatency:
+                    delay = params[4]
+                    logger.info('Low latency')
+
+                    flowdict['delay'] = delay
+                    for i in range(times):
+                        ListOfFlows_LowLatency.append(flowdict)  # Add to list
+
+                    # pprint(ListOfFlows_LowLatency)
+                elif params[0] == FlowType.HighBandwidth:
+                    minbandwidth = params[3]
+                    logger.info('High Bandwidth')
+
+                    flowdict['minbandwidth'] = minbandwidth
+                    for i in range(times):
+                        ListOfFlows_HighBandwidth.append(flowdict)  # Add to list
+
+                    # pprint(ListOfFlows_HighBandwidth)
+                else:
+                    logger.error('Undefined type:' + params[0])
+                    break
+            # break
+
+        # break
+
+
+    # Sort the list
+    ListOfFlows_LowLatency = sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'], reversed=True)
+    ListOfFlows_HighBandwidth = sorted(ListOfFlows_HighBandwidth, key=lambda k: k['weight'], reversed=True)
+
+
+    # The static algorithm
+    logger.info('Static Algorithm starting')
+    for F_LL in ListOfFlows_LowLatency:
+        logger.info(F_LL)
+
 
     # TODO: Gen ITGController config-file
 

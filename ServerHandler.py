@@ -41,7 +41,7 @@ class ServerHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         try:
             data = json.loads(rawdata)
         except ValueError:
-            print 'Oops'
+            print('Oops')
         logger.info("Got POST data:")
         logger.info(data)
 
