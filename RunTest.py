@@ -132,7 +132,6 @@ def GenerateAndSortListOfFlows():
 
         # break
 
-
     # Sort the list
     ListOfFlows_LowLatency = sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'], reversed=True)
     ListOfFlows_HighBandwidth = sorted(ListOfFlows_HighBandwidth, key=lambda k: k['weight'], reversed=True)
@@ -146,10 +145,10 @@ def GetPathDelay(path, bwoffset=0):
         linkdelay = 1.0 / (Mat_BW_Cap_Original[path[i]][path[i + 1]] - Mat_BW_LL_OccupiedBW_Offline[path[i]][path[i + 1]] - bwoffset)
         pathdelay += linkdelay
 
-    return pathdelay
+    return pathdelay  # Note: Should already be in us because the BW is in Mbps
 
 
-def GetRemainingBandwidthAndDelay(path, calculate_delay=False):
+def GetRemainingBandwidth(path):
     """ Offline algo function. Online algo should directly use Floodlight output(theoretically) """
     assert(len(path) >= 3)
     bottleneckbandwidth = Mat_BW_Cap_Remain[path[0]][path[1]]
@@ -158,14 +157,11 @@ def GetRemainingBandwidthAndDelay(path, calculate_delay=False):
         if rembandwidthonthispath < bottleneckbandwidth:
             bottleneckbandwidth = rembandwidthonthispath
 
-    delay = 0.0
-    if calculate_delay:
-        delay = GetPathDelay(path)
-
-    return bottleneckbandwidth, delay
+    return bottleneckbandwidth
 
 
 def CheckUpdatedDelay(F_LL):
+    """ Check if any existing LL flow delay will become unacceptable after new LL flow joins """
     assert(F_LL['delay'] is not None)
     bwoffset = F_LL['bandwidth']
     for acceptedll in List_AcceptedFlow_LowLatency:
@@ -177,6 +173,7 @@ def CheckUpdatedDelay(F_LL):
 
 
 def AddFlow(flow, IsLowLatencyFlow=False):
+    """ Let's Rock """
     assert(flow['path'] is not None)
     path = flow['path']
     bandwidth = flow['actual_bandwidth']
@@ -212,25 +209,58 @@ def RunStatic():
 
     # The static algorithm
     logger.info('Static Algorithm starting')
-    # Statistics info to
+    # Statistics info to collect & show
     Stat_Accepted = 0
+    Stat_Accepted_FromWaitList = 0
     Stat_Rejected = 0
 
     for F_LL in ListOfFlows_LowLatency:
         logger.info(F_LL)
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
-        for viable_path in paths:
-            bw_rem, delay = GetRemainingBandwidthAndDelay(viable_path, True)  # Note: delay in us, bw_rem in Mbps
+        for i, viable_path in paths:
+            bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
+            delay = GetPathDelay(viable_path)
             if F_LL['bandwidth'] <= bw_rem and delay <= F_LL['delay'] and CheckUpdatedDelay(F_LL):
                 # Basic req okay. Check other LL flow delay req.
                 F_LL['path'] = viable_path
                 F_LL['actual_bandwidth'] = F_LL['bandwidth']
                 AddFlow(F_LL, True)
+                Stat_Accepted += 1
                 break
+            if i >= len(paths) - 1:  # didn't find a good path
+                Stat_Rejected += 1
 
     for F_HB in ListOfFlows_HighBandwidth:
         List_WaitingList = []
         logger.info(F_HB)
+        paths, paths_number = GetPathList(F_HB['srcip'], F_HB['dstip'])
+        for i, viable_path in paths:
+            bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
+            if F_HB['bandwidth'] <= bw_rem:
+                F_HB['path'] = viable_path
+                F_HB['actual_bandwidth'] = F_HB['bandwidth']
+                AddFlow(F_HB, False)  # Add high bw flow to the list
+                Stat_Accepted += 1
+                break
+            elif bw_rem > 0:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
+                F_HB['path'] = viable_path
+                F_HB['actual_bandwidth'] = bw_rem
+                List_WaitingList.append(F_HB)
+            if i >= len(paths) - 1:  # Still haven't found a perfect path
+                if len(List_WaitingList) > 0:
+                    List_WaitingList = sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'], reversed=True)
+                    F_HB = List_WaitingList[0]  # Select the req with largest actual_bandwidth
+                    AddFlow(F_HB, False)
+                    Stat_Accepted += 1
+                    Stat_Accepted_FromWaitList += 1
+                    break
+                else:
+                    Stat_Rejected += 1
+
+    logger.info('Static Algo Result: (haven\'t deployed yet)')
+    logger.info('Stat_Accepted = ' + Stat_Accepted +
+                ', Stat_Accepted_FromWaitList = ' + Stat_Accepted_FromWaitList +
+                ', Stat_Rejected = ' + Stat_Rejected)
 
     # TODO: Gen ITGController config-file
 
