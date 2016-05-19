@@ -195,19 +195,7 @@ def AddFlow(flow, IsLowLatencyFlow=False):
             assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
 
 
-def RunStatic():
-    """ Entry function to start the static algorithm simulation """
-
-    # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
-
-    # TODO: Gen config list for ITGController from List_SRC_DST and Flow_To_Generate_Per_SRCDSTPair
-    # MARK: Debugging, just use first pair in List_SRC_DST
-
-    # Generate ListOfFlows
-    global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
-    GenerateAndSortListOfFlows()
-
-    # The static algorithm
+def OfflineAlgo():
     logger.info('Static Algorithm starting')
     # Statistics info to collect & show
     Stat_Accepted = 0
@@ -261,6 +249,22 @@ def RunStatic():
     logger.info('Stat_Accepted = ' + Stat_Accepted +
                 ', Stat_Accepted_FromWaitList = ' + Stat_Accepted_FromWaitList +
                 ', Stat_Rejected = ' + Stat_Rejected)
+
+
+def RunOffline():
+    """ Entry function to start the Offline algorithm simulation """
+
+    # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
+
+    # TODO: Gen config list for ITGController from List_SRC_DST and Flow_To_Generate_Per_SRCDSTPair
+    # MARK: Debugging, just use first pair in List_SRC_DST
+
+    # Generate ListOfFlows
+    global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
+    GenerateAndSortListOfFlows()
+
+    # The static algorithm
+    OfflineAlgo()
 
     # TODO: Gen ITGController config-file
 
