@@ -276,7 +276,7 @@ def RunOffline():
 
 
 def main():
-    RunStatic()
+    RunOffline()
 
 if __name__ == '__main__':
     main()
