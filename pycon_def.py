@@ -278,6 +278,37 @@ def Get_Dijkstra_Path(start, end, ScheAlgo, flow_size=0):
     return path
 
 
+# New for Agent
+# GetPathList('10.0.0.201', '10.0.0.211')
+def GetPathList(start, end, flow_size=0):
+    """ Use Dijkstra to calculate a route. The weight is the current bandwidth. """
+
+    global Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList
+    Mat_BW_Current, Mat_BW_Curr_DJ_Numpy, List_SwitchAndHosts, RevList = \
+        Get_Current_Mbps_Numpy(SchedulingAlgo.WSP, flow_size)
+
+    # Check if the start and end is in the list
+    if (start not in List_SwitchAndHosts) or (end not in List_SwitchAndHosts) or (start == end):
+        logger.error('Error in Dijkstra: Invalid start or end point.')
+        return []
+
+    G = nx.from_numpy_matrix(Mat_BW_Curr_DJ_Numpy, create_using=nx.DiGraph())  # Create graph
+    paths_numerical = nx.all_simple_paths(G, RevList[start], RevList[end])  # Run Dijkstra
+
+    paths = []
+
+    # Convert the numerical result to Node(SW/Host)
+    for path_numerical in paths_numerical:
+        path = ['' for x in range(len(path_numerical))]
+        Counter = 0
+        for element in path_numerical:
+            path[Counter] = List_SwitchAndHosts[element]
+            Counter += 1
+        paths.append(path)
+
+    return paths
+
+
 # Almost the same as Get_Dijkstra_Path()
 def Get_SEBF_Path(start, end, ScheAlgo, flow_size):
     """ Use SEBF to plan a route and limit the flow rate. flow_size is in Byte """
