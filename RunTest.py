@@ -310,8 +310,10 @@ def RunOffline():
         text_file.write(configfile)
 
     # TODO: ovs-vsctl add qos and queue
+    createqueue()
 
     # TODO: ovs-ofctl add output
+    addflowentries()
 
     # Call ITGController
     out = runcommand("~/ITGController/ITGController configStatic")
@@ -320,6 +322,24 @@ def RunOffline():
 
     # TODO: Collect result, and process them, show them
     out = runcommand("ITGDec X.log")
+
+
+def createqueue():
+    # ovs-vsctl clear port eth1 qos
+    # ovs-vsctl list qos
+    # ovs-vsctl --all destroy qos
+    # ovs-vsctl list queue
+    # ovs-vsctl --all destroy queue
+    # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
+    # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
+    # --id=@q2151 create queue other-config:priority=1 -- \
+    # --id=@q2152 create queue other-config:priority=2
+    return
+
+
+def addflowentries():
+    # sudo ovs-ofctl -O openflow13 add-flow tcp:ServerIP:6666 priority=2,udp,nw_dst=10TARGETIP,udp_dst=5501,actions=set_queue:2151,output=Xport
+    return
 
 
 def runcommand(cmdline):
