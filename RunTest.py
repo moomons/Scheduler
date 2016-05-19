@@ -256,9 +256,6 @@ def RunOffline():
 
     # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
 
-    # TODO: Gen config list for ITGController from List_SRC_DST and Flow_To_Generate_Per_SRCDSTPair
-    # MARK: Debugging, just use first pair in List_SRC_DST
-
     # Generate ListOfFlows
     global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
     GenerateAndSortListOfFlows()
@@ -266,20 +263,64 @@ def RunOffline():
     # The static algorithm
     OfflineAlgo()
 
-    # TODO: Gen ITGController config-file
+    # Gen ITGController config-file
+    portoffset_ll = 22000
+    portoffset_hb = 33000
+    poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
+    packet_size = 1024  # in bytes, -c 1024
+    send_duration = 10000  # in ms, -t 10000
+    configfile = ''
+    # Example:
+    # Host 192.168.109.201 {
+    # -a 10.0.0.211 -T UDP -m RTTM -rp 21301 -O 1000 -c 1024 -t 10000
+    # -a 10.0.0.211 -T UDP -m RTTM -rp 21302 -O 1000 -c 1024 -t 10000
+    # }
 
-    # TODO: Call ITGController
+    listsorted_LL = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
+    for i, F in listsorted_LL:  # weaving the config content. Looks dirty, but should work ;)
+        if i == 0:
+            current_srcip = F['srcip']
+            configfile += 'Host ' + str(current_srcip) + ' {\n'
+        else:
+            if current_srcip != F['srcip']:
+                configfile += '}\n\n'
+                current_srcip = F['srcip']
+                configfile += 'Host ' + str(current_srcip) + ' {\n'
+            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(portoffset_ll + i) + \
+                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                          ' -t ' + str(send_duration) + '\n'
+    configfile += '}\n\n'
+
+    listsorted_HB = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
+    for i, F in listsorted_HB:
+        if i == 0:
+            current_srcip = F['srcip']
+            configfile += 'Host ' + str(current_srcip) + ' {\n'
+        else:
+            if current_srcip != F['srcip']:
+                configfile += '}\n\n'
+                current_srcip = F['srcip']
+                configfile += 'Host ' + str(current_srcip) + ' {\n'
+            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(portoffset_hb + i) + \
+                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                          ' -t ' + str(send_duration) + '\n'
+    configfile += '}\n\n'
+
+    with open("configStatic", "w") as text_file:
+        text_file.write(configfile)
+
+    # TODO: ovs-vsctl add qos and queue
+
+    # TODO: ovs-ofctl add output
+
+    # Call ITGController
+    out = runcommand("~/ITGController/ITGController configStatic")
 
     # Wait for ITGController quit
 
     # TODO: Collect result, and process them, show them
+    out = runcommand("ITGDec X.log")
 
-
-def main():
-    RunOffline()
-
-if __name__ == '__main__':
-    main()
 
 def runcommand(cmdline):
     logger.info("Command line: " + cmdline)
@@ -290,3 +331,10 @@ def runcommand(cmdline):
 
     return out
 
+
+def main():
+    RunOffline()
+
+
+if __name__ == '__main__':
+    main()
