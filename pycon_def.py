@@ -296,6 +296,7 @@ def GetPathList(start, end, flow_size=0):
     paths_numerical = nx.all_simple_paths(G, RevList[start], RevList[end])  # Run Dijkstra
 
     paths = []
+    paths_numbered = []
 
     # Convert the numerical result to Node(SW/Host)
     for path_numerical in paths_numerical:
@@ -305,8 +306,9 @@ def GetPathList(start, end, flow_size=0):
             path[Counter] = List_SwitchAndHosts[element]
             Counter += 1
         paths.append(path)
+        paths_numbered.append(path_numerical)
 
-    return paths
+    return paths, paths_numbered
 
 
 # Almost the same as Get_Dijkstra_Path()
