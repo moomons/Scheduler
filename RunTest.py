@@ -277,7 +277,7 @@ def WriteITGConCFG_ForOffline(filename):
     portoffset_hb = 33000
     # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
     packet_size = 1000  # in bytes, -c 1024
-    send_duration = 60000  # in ms, -t 10000
+    send_duration = 10000  # in ms, -t 10000
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
@@ -377,7 +377,7 @@ def createqueue():
         ports = switch[1]
         for port in ports:
             cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 clear port " + port + " qos"
-            out = runcommand(cmdline)
+            out = runcommand(cmdline, True)
 
     # destroy existing qos and queues, then create new qos and queues
     # ovs-vsctl list qos
@@ -388,9 +388,9 @@ def createqueue():
         switchip = switch[0]
         ports = switch[1]
         cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 --all destroy qos"
-        out = runcommand(cmdline)
+        out = runcommand(cmdline, True)
         cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 --all destroy queue"
-        out = runcommand(cmdline)
+        out = runcommand(cmdline, True)
         for port in ports:
             # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
             # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
@@ -405,7 +405,7 @@ def createqueue():
                 "--id=@" + qosname + " create qos type=linux-htb queues=" + queueno + "1=@" + queuename_hb + "," + queueno + "2=@" + queuename_ll + " -- " \
                 "--id=@" + queuename_hb + " create queue other-config:priority=1  -- " \
                 "--id=@" + queuename_ll + " create queue other-config:priority=2"
-            out = runcommand(cmdline)
+            out = runcommand(cmdline, True)
 
     return True
 
@@ -466,16 +466,17 @@ def addflowentry_universal(list, flag_hb_ll):
 
             cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
                       ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
-            out = runcommand(cmdline)
+            out = runcommand(cmdline, True)
 
     return
 
 
-def runcommand(cmdline):
-    logger.info("Command line: " + cmdline)
+def runcommand(cmdline, suppressMessage=False):
+    if not suppressMessage:
+        logger.info("Command line: " + cmdline)
     output = os.popen(cmdline)
     out = output.read()
-    if len(out) > 0:
+    if not suppressMessage and len(out) > 0:
         logger.info("Execution result: " + out)
 
     return out
