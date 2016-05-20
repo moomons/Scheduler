@@ -3,6 +3,6 @@
 killall ITGSend
 killall ITGRecv
 ITGRecv &
-ITGSend -Q -L 192.168.109.213 &
+ITGSend -Q -L 192.168.109.213
 
 
