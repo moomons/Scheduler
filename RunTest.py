@@ -56,7 +56,7 @@ List_SRC_DST_Group = [
 
 # Small scale test.
 List_SRC_DST_Group = [
-    ["10.0.0.201", ["10.0.0.212"]]
+    ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
 ]
 
 Flow_To_Generate_Per_SRCDSTPair = [
@@ -64,7 +64,7 @@ Flow_To_Generate_Per_SRCDSTPair = [
     [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
     # [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
     # [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
-    # [1, [FlowType.HighBandwidth, 0.5, 8, 4, 0]],
+    [1, [FlowType.HighBandwidth, 0.35, 80, 4, 0]],
 ]
 
 # Small scale test.
@@ -286,46 +286,48 @@ def WriteITGConCFG_ForOffline(filename):
     # }
 
     global List_AcceptedFlow_LowLatency
-    listsorted_LL = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
-    for i, F in enumerate(listsorted_LL):  # weaving the config content. Looks dirty, but should work ;)
-        if i == 0:
-            current_srcip = F['srcip']
-            configfile += 'Host ' + str(current_srcip) + ' {\n'
-        else:
-            if current_srcip != F['srcip']:
-                configfile += '}\n\n'
+    if len(List_AcceptedFlow_LowLatency) > 0:
+        listsorted_LL = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
+        for i, F in enumerate(listsorted_LL):  # weaving the config content. Looks dirty, but should work ;)
+            if i == 0:
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
-        assigned_port = portoffset_ll + i
-        bandwidth_Mbps = F['actual_bandwidth']
-        poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
-        listsorted_LL[i]['assigned_port'] = assigned_port
-        configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                      ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                      ' -t ' + str(send_duration) + '\n'
-    configfile += '}\n\n'
-    List_AcceptedFlow_LowLatency = listsorted_LL
+            else:
+                if current_srcip != F['srcip']:
+                    configfile += '}\n\n'
+                    current_srcip = F['srcip']
+                    configfile += 'Host ' + str(current_srcip) + ' {\n'
+            assigned_port = portoffset_ll + i
+            bandwidth_Mbps = F['actual_bandwidth']
+            poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
+            listsorted_LL[i]['assigned_port'] = assigned_port
+            configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
+                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                          ' -t ' + str(send_duration) + '\n'
+        configfile += '}\n\n'
+        List_AcceptedFlow_LowLatency = listsorted_LL
 
     global List_AcceptedFlow_HighBandwidth
-    listsorted_HB = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
-    for i, F in enumerate(listsorted_HB):
-        if i == 0:
-            current_srcip = F['srcip']
-            configfile += 'Host ' + str(current_srcip) + ' {\n'
-        else:
-            if current_srcip != F['srcip']:
-                configfile += '}\n\n'
+    if len(List_AcceptedFlow_HighBandwidth) > 0:
+        listsorted_HB = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
+        for i, F in enumerate(listsorted_HB):
+            if i == 0:
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
-        assigned_port = portoffset_hb + i
-        bandwidth_Mbps = F['actual_bandwidth']
-        poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
-        listsorted_HB[i]['assigned_port'] = assigned_port
-        configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                      ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                      ' -t ' + str(send_duration) + '\n'
-    configfile += '}\n\n'
-    List_AcceptedFlow_HighBandwidth = listsorted_HB
+            else:
+                if current_srcip != F['srcip']:
+                    configfile += '}\n\n'
+                    current_srcip = F['srcip']
+                    configfile += 'Host ' + str(current_srcip) + ' {\n'
+            assigned_port = portoffset_hb + i
+            bandwidth_Mbps = F['actual_bandwidth']
+            poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
+            listsorted_HB[i]['assigned_port'] = assigned_port
+            configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
+                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                          ' -t ' + str(send_duration) + '\n'
+        configfile += '}\n\n'
+        List_AcceptedFlow_HighBandwidth = listsorted_HB
 
     with open("configStatic", "w") as text_file:
         text_file.write(configfile)
