@@ -13,7 +13,7 @@ Completely rewritten by mons. Works with modified Floodlight and Hadoop MR
 from ServerHandler import *
 from VSCtlRemote import *
 from RatePolling import *
-from RunTest import *
+import RunTest
 
 
 def main():
@@ -41,7 +41,11 @@ def main():
     logger.info('Pre-configuring flow tables ...')
     PreconfigureFlowtable(Mat_BW_Cap)
 
+    # GetPathList('10.0.0.201', '10.0.0.211')
+    # Get_Dijkstra_Path('10.0.0.201', '10.0.0.211', SchedulingAlgo.WSP, 998)
+
     logger.info('Running Offline(Static) Test ...')
+    RunTest.RunOffline()
 
     # logger.info('Installing packet-in flow entries ...')
     # Init_Basic_FlowEntries()
