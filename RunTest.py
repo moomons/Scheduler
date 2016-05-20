@@ -22,7 +22,7 @@ import os
 from pprint import pprint
 from enum import Enum
 from pycon_def import GetPathList
-from pycon_def import Mat_BW_Cap, Mat_BW_Cap_MASK
+from pycon_def import Mat_BW_Cap, Mat_SWHosts
 
 
 class FlowType(Enum):
@@ -276,6 +276,7 @@ def RunOffline():
     # -a 10.0.0.211 -T UDP -m RTTM -rp 21302 -O 1000 -c 1024 -t 10000
     # }
 
+    global List_AcceptedFlow_LowLatency
     listsorted_LL = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
     for i, F in listsorted_LL:  # weaving the config content. Looks dirty, but should work ;)
         if i == 0:
@@ -286,11 +287,15 @@ def RunOffline():
                 configfile += '}\n\n'
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
-            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(portoffset_ll + i) + \
+            assigned_port = portoffset_ll + i
+            listsorted_LL[i]['assigned_port'] = assigned_port
+            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                           ' -t ' + str(send_duration) + '\n'
     configfile += '}\n\n'
+    List_AcceptedFlow_LowLatency = listsorted_LL
 
+    global List_AcceptedFlow_HighBandwidth
     listsorted_HB = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
     for i, F in listsorted_HB:
         if i == 0:
@@ -301,10 +306,13 @@ def RunOffline():
                 configfile += '}\n\n'
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
-            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(portoffset_hb + i) + \
+            assigned_port = portoffset_hb + i
+            listsorted_HB[i]['assigned_port'] = assigned_port
+            configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                           ' -t ' + str(send_duration) + '\n'
     configfile += '}\n\n'
+    List_AcceptedFlow_HighBandwidth = listsorted_HB
 
     with open("configStatic", "w") as text_file:
         text_file.write(configfile)
@@ -325,21 +333,110 @@ def RunOffline():
 
 
 def createqueue():
+    portlist = [
+        ["192.168.109.214", ["eth1", "eth2", "eth3", "eth4"]],
+        ["192.168.109.215", ["eth1", "eth2", "eth3", "eth4"]],
+        ["192.168.109.224", ["eth1", "eth2"]],
+        ["192.168.109.225", ["eth1", "eth2"]],
+    ]
+
+    # Clear binded qos from ports first
     # ovs-vsctl clear port eth1 qos
+    for switch in portlist:
+        switchip = switch[0]
+        ports = switch[1]
+        for port in ports:
+            cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 clear port " + port + " qos"
+            out = runcommand(cmdline)
+
+    # destroy existing qos and queues, then create new qos and queues
     # ovs-vsctl list qos
     # ovs-vsctl --all destroy qos
     # ovs-vsctl list queue
     # ovs-vsctl --all destroy queue
-    # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
-    # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
-    # --id=@q2151 create queue other-config:priority=1 -- \
-    # --id=@q2152 create queue other-config:priority=2
-    return
+    for switch in portlist:
+        switchip = switch[0]
+        ports = switch[1]
+        cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 --all destroy qos"
+        out = runcommand(cmdline)
+        cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 --all destroy queue"
+        out = runcommand(cmdline)
+        for port in ports:
+            # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
+            # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
+            # --id=@q2151 create queue other-config:priority=1 -- \
+            # --id=@q2152 create queue other-config:priority=2
+            qosname = "nq_" + port
+            queueno = switch[-3:] + port[-1:]
+            queuename = "q_" + port
+            queuename_hb = queuename + "_hb"  # 1
+            queuename_ll = queuename + "_ll"  # 2
+            cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 -- set port " + port + " qos=@" + qosname + " -- \
+                --id=@" + qosname + " create qos type=linux-htb queues=" + queueno + "1=@" + queuename_hb + "," + queueno + "2=@" + queuename_ll + " -- \
+                --id=@" + queuename_hb + " create queue other-config:priority=1 -- \
+                --id=@" + queuename_ll + " create queue other-config:priority=2"
+            out = runcommand(cmdline)
+
+    return True
 
 
 def addflowentries():
-    # sudo ovs-ofctl -O openflow13 add-flow tcp:ServerIP:6666 priority=2,udp,nw_dst=10TARGETIP,udp_dst=5501,actions=set_queue:2151,output=Xport
-    return
+    """ Add entries to the flow table """
+    # ovs-ofctl -O OpenFlow13 add-flow tcp:ServerIP:6666 priority=20,udp,nw_dst=DSTHOSTIP,udp_dst=5501,actions=set_queue:2151,output:1
+    addflowentry_universal(List_AcceptedFlow_LowLatency, "2")  # Careful! 2 for Low Latency, 1 for high bandwidth
+    addflowentry_universal(List_AcceptedFlow_HighBandwidth, "1")
+
+
+def addflowentry_universal(list, flag_hb_ll):
+    global Mat_SWHosts
+    ovs_mac_to_manageinterfaceip = {
+        "00:1b:cd:03:04:64": "192.168.109.214",
+        "00:1b:cd:03:05:94": "192.168.109.215",
+        "00:1b:cd:03:19:90": "192.168.109.224",
+        "00:1b:cd:03:16:ac": "192.168.109.225",
+    }
+    ovsswitch_port_eth_map = {
+        "192.168.109.214": {
+            1: "eth1",
+            2: "eth2",
+            3: "eth3",
+            4: "eth4",
+        },
+        "192.168.109.215": {
+            1: "eth1",
+            2: "eth2",
+            3: "eth3",
+            4: "eth4",
+        },
+        "192.168.109.224": {
+            1: "eth1",
+            2: "eth2",
+        },
+        "192.168.109.225": {
+            4: "eth1",
+            5: "eth2",
+        },
+    }
+
+    for flow in list:
+        logger.info('Add flow entry: ' + flow)
+        assigned_port = flow['assigned_port']
+        dsthost = flow['dstip']
+        path = flow['path']
+        assert(len(path) > 3)
+        for i in range(1, len(path) - 2):
+            prev_node = path[i - 1]
+            current_node = path[i]
+            next_node = path[i + 1]
+            in_port = Mat_SWHosts[prev_node][current_node][1]
+            output_port = Mat_SWHosts[current_node][next_node][0]
+
+            ovsserverip = ovs_mac_to_manageinterfaceip[current_node]
+            queueno = ovsserverip[-3:] + ovsswitch_port_eth_map[ovsserverip][output_port][-1:] + flag_hb_ll
+
+            cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
+                      ",udp_dst=" + str(assigned_port) + ",in_port=" + in_port + ",actions=set_queue:" + queueno + ",output:" + output_port
+            out = runcommand(cmdline)
 
 
 def runcommand(cmdline):
@@ -358,3 +455,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
