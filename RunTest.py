@@ -62,8 +62,10 @@ List_SRC_DST_Group = [
 
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [2, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
-    [1, [FlowType.HighBandwidth, 0.1, 500, 300, 0]],
+    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
 ]
 
 # DictOfFlows_LowLatency = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 8, 'delay': 1000}]
@@ -91,10 +93,10 @@ def GenerateAndSortListOfFlows():
         dests = OnePair[1]
 
         for dest in dests:
-            logger.info('Source: ' + source + ', Destination: ' + dest)
             if source == dest:
-                logger.info('Skipping same source/dest')
+                # logger.info('Skipping same source/dest')
                 continue
+            logger.info('Source: ' + source + ', Destination: ' + dest)
             for flow in Flow_To_Generate_Per_SRCDSTPair:
                 times = flow[0]
                 params = flow[1]
@@ -109,7 +111,7 @@ def GenerateAndSortListOfFlows():
 
                 if params[0] == FlowType.LowLatency:
                     delay = params[4]
-                    logger.info('Low latency')
+                    # logger.info('Low latency')
 
                     flowdict['delay'] = delay
                     for i in range(times):
@@ -118,7 +120,7 @@ def GenerateAndSortListOfFlows():
                     # pprint(ListOfFlows_LowLatency)
                 elif params[0] == FlowType.HighBandwidth:
                     minbandwidth = params[3]
-                    logger.info('High Bandwidth')
+                    # logger.info('High Bandwidth')
 
                     flowdict['minbandwidth'] = minbandwidth
                     for i in range(times):
@@ -133,8 +135,8 @@ def GenerateAndSortListOfFlows():
         # break
 
     # Sort the list
-    ListOfFlows_LowLatency = sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'], reversed=True)
-    ListOfFlows_HighBandwidth = sorted(ListOfFlows_HighBandwidth, key=lambda k: k['weight'], reversed=True)
+    ListOfFlows_LowLatency = list(reversed(sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'])))
+    ListOfFlows_HighBandwidth = list(reversed(sorted(ListOfFlows_HighBandwidth, key=lambda k: k['weight'])))
 
 
 def GetPathDelay(path, bwoffset=0):
@@ -184,7 +186,7 @@ def AddFlow(flow, IsLowLatencyFlow=False):
         List_AcceptedFlow_LowLatency.append(flow)  # Add the flow to the accepted list, congrats!
         for i in range(0, len(path) - 1):
             Mat_BW_LL_OccupiedFlowNo_Offline[path[i]][path[i + 1]].append(idx)  # Add to the LL share link
-            Mat_BW_LL_OccupiedFlowNo_Offline[path[i]][path[i + 1]] += bandwidth
+            Mat_BW_LL_OccupiedBW_Offline[path[i]][path[i + 1]] += bandwidth
             Mat_BW_Cap_Remain[path[i]][path[i + 1]] -= bandwidth
             assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)
     else:                 # HighBandwidth Flow
@@ -205,7 +207,7 @@ def OfflineAlgo():
     for F_LL in ListOfFlows_LowLatency:
         logger.info(F_LL)
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
-        for i, viable_path in paths:
+        for viable_path in paths:
             bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
             delay = GetPathDelay(viable_path)
             if F_LL['bandwidth'] <= bw_rem and delay <= F_LL['delay'] and CheckUpdatedDelay(F_LL):
@@ -215,7 +217,8 @@ def OfflineAlgo():
                 AddFlow(F_LL, True)
                 Stat_Accepted += 1
                 break
-            if i >= len(paths) - 1:  # didn't find a good path
+            path_index = paths.index(viable_path)
+            if path_index >= len(paths) - 1:  # didn't find a good path
                 Stat_Rejected += 1
 
     for F_HB in ListOfFlows_HighBandwidth:
@@ -230,7 +233,7 @@ def OfflineAlgo():
                 AddFlow(F_HB, False)  # Add high bw flow to the list
                 Stat_Accepted += 1
                 break
-            elif bw_rem > 0:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
+            elif bw_rem > F_HB['minbandwidth']:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
                 F_HB['path'] = viable_path
                 F_HB['actual_bandwidth'] = bw_rem
                 List_WaitingList.append(F_HB)
