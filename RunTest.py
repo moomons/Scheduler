@@ -331,8 +331,6 @@ def WriteITGConCFG_ForOffline(filename):
 def RunOffline():
     """ Entry function to start the Offline algorithm simulation """
 
-    # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
-
     # Generate ListOfFlows
     global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
     GenerateAndSortListOfFlows()
@@ -349,12 +347,15 @@ def RunOffline():
     # ovs-ofctl add output
     addflowentries()
 
+    # TODO: 213: ITGLog. All: ITGRecv, ITGSend -Q -L 192.168.109.213
+    # Note: restart the ITGSend to clear the log.
+
     # Call ITGController, run the test
     out = runcommand("java -jar ~/ITGController/ITGController.jar configStatic")
 
     # Wait for ITGController quit
 
-    # TODO: Collect result, and process them, show them
+    # Show the processed log
     out = runcommand("ITGDec /tmp/ITGSend.log")
 
 
