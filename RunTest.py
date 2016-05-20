@@ -266,8 +266,8 @@ def RunOffline():
     # Gen ITGController config-file
     portoffset_ll = 22000
     portoffset_hb = 33000
-    poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
-    packet_size = 1024  # in bytes, -c 1024
+    # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
+    packet_size = 1000  # in bytes, -c 1024
     send_duration = 10000  # in ms, -t 10000
     configfile = ''
     # Example:
@@ -288,6 +288,8 @@ def RunOffline():
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
             assigned_port = portoffset_ll + i
+            bandwidth_Mbps = F['actual_bandwidth']
+            poisson_average_pktps = 1000000 * bandwidth_Mbps / 8.0 / packet_size
             listsorted_LL[i]['assigned_port'] = assigned_port
             configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
@@ -307,6 +309,8 @@ def RunOffline():
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
             assigned_port = portoffset_hb + i
+            bandwidth_Mbps = F['actual_bandwidth']
+            poisson_average_pktps = 1000000 * bandwidth_Mbps / 8.0 / packet_size
             listsorted_HB[i]['assigned_port'] = assigned_port
             configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
