@@ -202,9 +202,8 @@ def AddFlow(flow, IsLowLatencyFlow=False):
 def OfflineAlgo():
     logger.info('Static Algorithm starting')
     # Statistics info to collect & show
-    Stat_Accepted = 0
-    Stat_Accepted_FromWaitList = 0
-    Stat_Rejected = 0
+    Stat_Accepted_LL = 0
+    Stat_Rejected_LL = 0
 
     for F_LL in ListOfFlows_LowLatency:
         logger.info(dict(F_LL))
@@ -217,18 +216,21 @@ def OfflineAlgo():
                 F_LL['path'] = viable_path
                 F_LL['actual_bandwidth'] = F_LL['bandwidth']
                 AddFlow(F_LL, True)
-                Stat_Accepted += 1
+                Stat_Accepted_LL += 1
                 break
             path_index = paths.index(viable_path)
             if path_index >= len(paths) - 1:  # didn't find a good path
                 logger.warning("Rejected")
-                Stat_Rejected += 1
+                Stat_Rejected_LL += 1
     del paths
     del paths_number
     del bw_rem
     del delay
     del F_LL
 
+    Stat_Accepted_HB = 0
+    Stat_Accepted_HB_UsingWaitList = 0
+    Stat_Rejected_HB = 0
     for F_HB in ListOfFlows_HighBandwidth:
         List_WaitingList = []
         logger.info(dict(F_HB))
@@ -239,7 +241,7 @@ def OfflineAlgo():
                 F_HB['path'] = viable_path
                 F_HB['actual_bandwidth'] = F_HB['bandwidth']
                 AddFlow(F_HB, False)  # Add high bw flow to the list
-                Stat_Accepted += 1
+                Stat_Accepted_HB += 1
                 break
             elif bw_rem > F_HB['minbandwidth']:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
                 F_HB['path'] = viable_path
@@ -251,22 +253,24 @@ def OfflineAlgo():
                     List_WaitingList = list(reversed(sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'])))
                     F_HB = List_WaitingList[0]  # Select the req with largest actual_bandwidth
                     AddFlow(F_HB, False)
-                    Stat_Accepted += 1
+                    Stat_Accepted_HB += 1
                     logger.warning("Accepted from the waiting list")
-                    Stat_Accepted_FromWaitList += 1
+                    Stat_Accepted_HB_UsingWaitList += 1
                     break
                 else:
                     logger.warning("Rejected")
-                    Stat_Rejected += 1
+                    Stat_Rejected_HB += 1
     del paths
     del paths_number
     del bw_rem
     del F_HB
 
     logger.info('Static Algo Result: (haven\'t deployed yet)')
-    logger.info('Stat_Accepted = ' + str(Stat_Accepted) +
-                ', Stat_Accepted_FromWaitList = ' + str(Stat_Accepted_FromWaitList) +
-                ', Stat_Rejected = ' + str(Stat_Rejected))
+    logger.info('Low latency:\nAccepted = ' + str(Stat_Accepted_LL) +
+                ', Rejected = ' + str(Stat_Rejected_LL))
+    logger.info('High bandwidth:\nAccepted(Full BW) = ' + str(Stat_Accepted_HB) +
+                ', Accepted(Partial BW) = ' + str(Stat_Accepted_HB_UsingWaitList) +
+                ', Rejected = ' + str(Stat_Rejected_HB))
 
 
 def WriteITGConCFG_ForOffline(filename):
