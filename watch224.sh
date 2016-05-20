@@ -5,8 +5,11 @@ bold="\033[1m"
 normal="\033[0m"
 cyan="\033[36m"
 underline="\033[4m"
-threshold=60000
+threshold=1000000
 ovsip=(192.168.109.214 192.168.109.215 192.168.109.224 192.168.109.225)
+
+#echo "pingall"
+#./pingall.sh
 
 echo "Starting Watcher."
 LOG_FILE="watch.log"
