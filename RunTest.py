@@ -205,7 +205,7 @@ def OfflineAlgo():
     Stat_Rejected = 0
 
     for F_LL in ListOfFlows_LowLatency:
-        logger.info(F_LL)
+        logger.info(dict(F_LL))
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
         for viable_path in paths:
             bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
@@ -219,13 +219,19 @@ def OfflineAlgo():
                 break
             path_index = paths.index(viable_path)
             if path_index >= len(paths) - 1:  # didn't find a good path
+                logger.warning("Rejected")
                 Stat_Rejected += 1
+    del paths
+    del paths_number
+    del bw_rem
+    del delay
+    del F_LL
 
     for F_HB in ListOfFlows_HighBandwidth:
         List_WaitingList = []
-        logger.info(F_HB)
+        logger.info(dict(F_HB))
         paths, paths_number = GetPathList(F_HB['srcip'], F_HB['dstip'])
-        for i, viable_path in paths:
+        for viable_path in paths:
             bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
             if F_HB['bandwidth'] <= bw_rem:
                 F_HB['path'] = viable_path
@@ -237,21 +243,28 @@ def OfflineAlgo():
                 F_HB['path'] = viable_path
                 F_HB['actual_bandwidth'] = bw_rem
                 List_WaitingList.append(F_HB)
-            if i >= len(paths) - 1:  # Still haven't found a perfect path
+            path_index = paths.index(viable_path)
+            if path_index >= len(paths) - 1:  # Still haven't found a perfect path
                 if len(List_WaitingList) > 0:
-                    List_WaitingList = sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'], reversed=True)
+                    List_WaitingList = list(reversed(sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'])))
                     F_HB = List_WaitingList[0]  # Select the req with largest actual_bandwidth
                     AddFlow(F_HB, False)
                     Stat_Accepted += 1
+                    logger.warning("Accepted from the waiting list")
                     Stat_Accepted_FromWaitList += 1
                     break
                 else:
+                    logger.warning("Rejected")
                     Stat_Rejected += 1
+    del paths
+    del paths_number
+    del bw_rem
+    del F_HB
 
     logger.info('Static Algo Result: (haven\'t deployed yet)')
-    logger.info('Stat_Accepted = ' + Stat_Accepted +
-                ', Stat_Accepted_FromWaitList = ' + Stat_Accepted_FromWaitList +
-                ', Stat_Rejected = ' + Stat_Rejected)
+    logger.info('Stat_Accepted = ' + str(Stat_Accepted) +
+                ', Stat_Accepted_FromWaitList = ' + str(Stat_Accepted_FromWaitList) +
+                ', Stat_Rejected = ' + str(Stat_Rejected))
 
 
 def RunOffline():
