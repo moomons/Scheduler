@@ -35,11 +35,11 @@ def main():
     # print 'Matrix of Current Bandwidth Capacity (in Mbps)'
     # print DataFrame(Mat_BW_Current).T.fillna(0)
 
-    logger.info('Configuring OVS Switches ...')
-    Init_vsctl()
+    # logger.info('Configuring OVS Switches ...')
+    # Init_vsctl()
 
-    logger.info('Pre-configuring flow tables ...')
-    PreconfigureFlowtable(Mat_BW_Cap)
+    # logger.info('Pre-configuring flow tables ...')
+    # PreconfigureFlowtable(Mat_BW_Cap)
 
     # GetPathList('10.0.0.201', '10.0.0.211')
     # Get_Dijkstra_Path('10.0.0.201', '10.0.0.211', SchedulingAlgo.WSP, 998)

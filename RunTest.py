@@ -16,8 +16,7 @@ from collections import defaultdict
 from pycon_cfg import *
 import os
 from enum import Enum
-from pycon_def import GetPathList
-from pycon_def import Mat_BW_Cap
+from pycon_def import GetPathList, Mat_BW_Cap, Mat_SWHosts
 
 
 class FlowType(Enum):
@@ -63,16 +62,16 @@ List_SRC_DST_Group = [
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
     [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
-    [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
-    [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
-    [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
+    # [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
+    # [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
+    # [1, [FlowType.HighBandwidth, 0.5, 8, 4, 0]],
 ]
 
 # Small scale test.
-Flow_To_Generate_Per_SRCDSTPair = [
-    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],
-    [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
-]
+# Flow_To_Generate_Per_SRCDSTPair = [
+#     [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],
+#     [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
+# ]
 
 # DictOfFlows_LowLatency = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 8, 'delay': 1000}]
 # DictOfFlows_HighBandwidth = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 500, 'minbandwidth': 250}]
@@ -222,11 +221,11 @@ def OfflineAlgo():
             if path_index >= len(paths) - 1:  # didn't find a good path
                 logger.warning("Rejected")
                 Stat_Rejected_LL += 1
-    del paths
-    del paths_number
-    del bw_rem
-    del delay
-    del F_LL
+    # del paths
+    # del paths_number
+    # del bw_rem
+    # del delay
+    # del F_LL
 
     Stat_Accepted_HB = 0
     Stat_Accepted_HB_UsingWaitList = 0
@@ -260,10 +259,10 @@ def OfflineAlgo():
                 else:
                     logger.warning("Rejected")
                     Stat_Rejected_HB += 1
-    del paths
-    del paths_number
-    del bw_rem
-    del F_HB
+    # del paths
+    # del paths_number
+    # del bw_rem
+    # del F_HB
 
     logger.info('Static Algo Result: (haven\'t deployed yet)')
     logger.info('Low latency:\nAccepted = ' + str(Stat_Accepted_LL) +
@@ -278,7 +277,7 @@ def WriteITGConCFG_ForOffline(filename):
     portoffset_hb = 33000
     # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
     packet_size = 1000  # in bytes, -c 1024
-    send_duration = 10000  # in ms, -t 10000
+    send_duration = 60000  # in ms, -t 10000
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
