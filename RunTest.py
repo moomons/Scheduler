@@ -287,30 +287,20 @@ def WriteITGConCFG_ForOffline(filename):
 
     global List_AcceptedFlow_LowLatency
     if len(List_AcceptedFlow_LowLatency) > 0:
-        listsorted_LL = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
-        for i, F in enumerate(listsorted_LL):  # weaving the config content. Looks dirty, but should work ;)
-            if i == 0:
-                current_srcip = F['srcip']
-                configfile += 'Host ' + str(current_srcip) + ' {\n'
-            else:
-                if current_srcip != F['srcip']:
-                    configfile += '}\n\n'
-                    current_srcip = F['srcip']
-                    configfile += 'Host ' + str(current_srcip) + ' {\n'
-            assigned_port = portoffset_ll + i
-            bandwidth_Mbps = F['actual_bandwidth']
-            poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
-            listsorted_LL[i]['assigned_port'] = assigned_port
-            configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                          ' -t ' + str(send_duration) + '\n'
-        configfile += '}\n\n'
-        List_AcceptedFlow_LowLatency = listsorted_LL
+        List_AcceptedFlow_LowLatency = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
+        for i, F in enumerate(List_AcceptedFlow_LowLatency):
+            List_AcceptedFlow_LowLatency[i]['assigned_port'] = portoffset_ll + i
 
     global List_AcceptedFlow_HighBandwidth
     if len(List_AcceptedFlow_HighBandwidth) > 0:
-        listsorted_HB = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
-        for i, F in enumerate(listsorted_HB):
+        List_AcceptedFlow_HighBandwidth = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
+        for i, F in enumerate(List_AcceptedFlow_HighBandwidth):
+            List_AcceptedFlow_HighBandwidth[i]['assigned_port'] = portoffset_ll + i
+
+    listallaccepted = sorted(List_AcceptedFlow_LowLatency + List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
+
+    if len(listallaccepted) > 0:
+        for i, F in enumerate(listallaccepted):
             if i == 0:
                 current_srcip = F['srcip']
                 configfile += 'Host ' + str(current_srcip) + ' {\n'
@@ -319,15 +309,13 @@ def WriteITGConCFG_ForOffline(filename):
                     configfile += '}\n\n'
                     current_srcip = F['srcip']
                     configfile += 'Host ' + str(current_srcip) + ' {\n'
-            assigned_port = portoffset_hb + i
+            assigned_port = listallaccepted[i]['assigned_port']
             bandwidth_Mbps = F['actual_bandwidth']
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
-            listsorted_HB[i]['assigned_port'] = assigned_port
             configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                           ' -t ' + str(send_duration) + '\n'
         configfile += '}\n\n'
-        List_AcceptedFlow_HighBandwidth = listsorted_HB
 
     with open("configStatic", "w") as text_file:
         text_file.write(configfile)
