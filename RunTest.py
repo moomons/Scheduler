@@ -11,18 +11,13 @@
   1x High Bandwidth flow: 600 Mbps, min 300 Mbps
   50x Low Latency flow: 7 Mbps, max delay 1 ms
 
-  Online Background flows:
-  215->224->214, 215->225->214, 214->224->215, 214->225->215
-  1x High Bandwidth flow: 200 Mbps each (fixed)
-
 """
 from collections import defaultdict
 from pycon_cfg import *
 import os
-from pprint import pprint
 from enum import Enum
 from pycon_def import GetPathList
-from pycon_def import Mat_BW_Cap, Mat_SWHosts
+from pycon_def import Mat_BW_Cap
 
 
 class FlowType(Enum):
@@ -60,11 +55,22 @@ List_SRC_DST_Group = [
     ["10.0.0.213", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
 ]
 
+# Small scale test.
+List_SRC_DST_Group = [
+    ["10.0.0.201", ["10.0.0.212"]]
+]
+
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
     [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
-    [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],  # MARK: Set to 80
-    [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
+    [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
+    [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
+]
+
+# Small scale test.
+Flow_To_Generate_Per_SRCDSTPair = [
+    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],
     [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
 ]
 
@@ -73,15 +79,14 @@ Flow_To_Generate_Per_SRCDSTPair = [
 ListOfFlows_LowLatency = []
 ListOfFlows_HighBandwidth = []
 
+List_AcceptedFlow_LowLatency = []
+List_AcceptedFlow_HighBandwidth = []
+
 # Mat_BW_Cap
 Mat_BW_Cap_Original = Mat_BW_Cap
 Mat_BW_Cap_Remain = Mat_BW_Cap
-# Mat_Link_Share = Mat_BW_Cap
 Mat_BW_LL_OccupiedBW_Offline = defaultdict(lambda: defaultdict(lambda: 0))
 Mat_BW_LL_OccupiedFlowNo_Offline = defaultdict(lambda: defaultdict(lambda: []))
-
-List_AcceptedFlow_LowLatency = []
-List_AcceptedFlow_HighBandwidth = []
 
 
 def GenerateAndSortListOfFlows():
@@ -130,9 +135,6 @@ def GenerateAndSortListOfFlows():
                 else:
                     logger.error('Undefined type:' + params[0])
                     break
-            # break
-
-        # break
 
     # Sort the list
     ListOfFlows_LowLatency = list(reversed(sorted(ListOfFlows_LowLatency, key=lambda k: k['weight'])))
