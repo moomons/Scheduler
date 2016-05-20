@@ -269,19 +269,7 @@ def OfflineAlgo():
                 ', Stat_Rejected = ' + str(Stat_Rejected))
 
 
-def RunOffline():
-    """ Entry function to start the Offline algorithm simulation """
-
-    # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
-
-    # Generate ListOfFlows
-    global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
-    GenerateAndSortListOfFlows()
-
-    # The static algorithm
-    OfflineAlgo()
-
-    # Gen ITGController config-file
+def WriteITGConCFG_ForOffline(filename):
     portoffset_ll = 22000
     portoffset_hb = 33000
     # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
@@ -309,7 +297,7 @@ def RunOffline():
         bandwidth_Mbps = F['actual_bandwidth']
         poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
         listsorted_LL[i]['assigned_port'] = assigned_port
-        configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
+        configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                       ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                       ' -t ' + str(send_duration) + '\n'
     configfile += '}\n\n'
@@ -330,7 +318,7 @@ def RunOffline():
         bandwidth_Mbps = F['actual_bandwidth']
         poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
         listsorted_HB[i]['assigned_port'] = assigned_port
-        configfile += '  -a ' + F['dstip'] + ' -T UDP -m RTTM -rp ' + str(assigned_port) + \
+        configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                       ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                       ' -t ' + str(send_duration) + '\n'
     configfile += '}\n\n'
@@ -339,13 +327,29 @@ def RunOffline():
     with open("configStatic", "w") as text_file:
         text_file.write(configfile)
 
-    # TODO: ovs-vsctl add qos and queue
+
+def RunOffline():
+    """ Entry function to start the Offline algorithm simulation """
+
+    # TODO: Run ITGLog on 213. Run ITGRecv, ITGSend -Q -L 192.168.109.213 on all
+
+    # Generate ListOfFlows
+    global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
+    GenerateAndSortListOfFlows()
+
+    # The static algorithm
+    OfflineAlgo()
+
+    # Gen ITGController config-file
+    WriteITGConCFG_ForOffline("configStatic")
+
+    # ovs-vsctl add qos and queue
     createqueue()
 
-    # TODO: ovs-ofctl add output
+    # ovs-ofctl add output
     addflowentries()
 
-    # Call ITGController
+    # Call ITGController, run the test
     out = runcommand("java -jar ~/ITGController/ITGController.jar configStatic")
 
     # Wait for ITGController quit
