@@ -300,36 +300,6 @@ def WriteITGConCFG_ForOffline(filename):
         text_file.write(configfile)
 
 
-def RunOffline():
-    """ Entry function to start the Offline algorithm simulation """
-
-    # Generate ListOfFlows
-    GenerateAndSortListOfFlows()
-
-    # The static algorithm
-    OfflineAlgo()
-
-    # Gen ITGController config-file
-    WriteITGConCFG_ForOffline("configOffline")
-
-    # ovs-vsctl add qos and queue
-    createqueue()
-
-    # ovs-ofctl add output
-    addflowentries()
-
-    # TODO: 213: ITGLog. All: ITGRecv, ITGSend -Q -L 192.168.109.213
-    # Note: restart the ITGSend to clear the log.
-
-    # Call ITGController, run the test
-    out = runcommand("java -jar ~/ITGController/ITGController.jar configOffline")
-
-    # Wait for ITGController quit
-
-    # Show the processed log
-    out = runcommand("ITGDec /tmp/ITGSend.log")
-
-
 def createqueue():
     portlist = [
         ["192.168.109.214", ["eth1", "eth2", "eth3", "eth4"]],
@@ -447,6 +417,36 @@ def runcommand(cmdline, suppressMessage=False):
         logger.info("Execution result: " + out)
 
     return out
+
+
+def RunOffline():
+    """ Entry function to start the Offline algorithm simulation """
+
+    # Generate ListOfFlows
+    GenerateAndSortListOfFlows()
+
+    # The static algorithm
+    OfflineAlgo()
+
+    # Gen ITGController config-file
+    WriteITGConCFG_ForOffline("configOffline")
+
+    # ovs-vsctl add qos and queue
+    createqueue()
+
+    # ovs-ofctl add output
+    addflowentries()
+
+    # TODO: 213: ITGLog. All: ITGRecv, ITGSend -Q -L 192.168.109.213
+    # Note: restart the ITGSend to clear the log.
+
+    # Call ITGController, run the test
+    out = runcommand("java -jar ~/ITGController/ITGController.jar configOffline")
+
+    # Wait for ITGController quit
+
+    # Show the processed log
+    out = runcommand("ITGDec /tmp/ITGSend.log")
 
 
 def main():
