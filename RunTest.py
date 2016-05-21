@@ -57,6 +57,7 @@ List_SRC_DST_Group = [
 # Small scale test.
 List_SRC_DST_Group = [
     ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
+    ["10.0.0.211", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
 ]
 
 Flow_To_Generate_Per_SRCDSTPair = [
@@ -277,7 +278,7 @@ def WriteITGConCFG_ForOffline(filename):
     portoffset_hb = 33000
     # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
     packet_size = 1000  # in bytes, -c 1024
-    send_duration = 10000  # in ms, -t 10000
+    send_duration = 15000  # in ms, -t 10000
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
@@ -295,7 +296,7 @@ def WriteITGConCFG_ForOffline(filename):
     if len(List_AcceptedFlow_HighBandwidth) > 0:
         List_AcceptedFlow_HighBandwidth = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
         for i, F in enumerate(List_AcceptedFlow_HighBandwidth):
-            List_AcceptedFlow_HighBandwidth[i]['assigned_port'] = portoffset_ll + i
+            List_AcceptedFlow_HighBandwidth[i]['assigned_port'] = portoffset_hb + i
 
     listallaccepted = sorted(List_AcceptedFlow_LowLatency + List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
 
@@ -403,8 +404,8 @@ def createqueue():
 def addflowentries():
     """ Add entries to the flow table """
     # ovs-ofctl -O OpenFlow13 add-flow tcp:ServerIP:6666 priority=20,udp,nw_dst=DSTHOSTIP,udp_dst=5501,actions=set_queue:2151,output:1
-    addflowentry_universal(List_AcceptedFlow_LowLatency, "2")  # Careful! 2 for Low Latency, 1 for high bandwidth
-    addflowentry_universal(List_AcceptedFlow_HighBandwidth, "1")
+    addflowentry_universal(List_AcceptedFlow_LowLatency, "1")  # Careful! 1 for Low Latency, 2 for high bandwidth
+    addflowentry_universal(List_AcceptedFlow_HighBandwidth, "2")
 
 
 def addflowentry_universal(list, flag_hb_ll):
@@ -456,14 +457,15 @@ def addflowentry_universal(list, flag_hb_ll):
 
             cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
                       ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
+            # cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,tcp,nw_dst=" + dsthost + \
+            #           ",tcp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
             out = runcommand(cmdline, True)
 
     return
 
 
 def runcommand(cmdline, suppressMessage=False):
-    if not suppressMessage:
-        logger.info("Command line: " + cmdline)
+    logger.info("Command line: " + cmdline)
     output = os.popen(cmdline)
     out = output.read()
     if not suppressMessage and len(out) > 0:
