@@ -179,10 +179,10 @@ def AddFlow(flow, IsLowLatencyFlow=False):
 
 def OfflineAlgo():
     logger.info('Static Algorithm starting')
+
     # Statistics info to collect & show
     Stat_Accepted_LL = 0
     Stat_Rejected_LL = 0
-
     for F_LL in ListOfFlows_LowLatency:
         logger.info(dict(F_LL))
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
@@ -200,11 +200,6 @@ def OfflineAlgo():
             if path_index >= len(paths) - 1:  # didn't find a good path
                 logger.warning("Rejected")
                 Stat_Rejected_LL += 1
-    # del paths
-    # del paths_number
-    # del bw_rem
-    # del delay
-    # del F_LL
 
     Stat_Accepted_HB = 0
     Stat_Accepted_HB_UsingWaitList = 0
@@ -238,10 +233,6 @@ def OfflineAlgo():
                 else:
                     logger.warning("Rejected")
                     Stat_Rejected_HB += 1
-    # del paths
-    # del paths_number
-    # del bw_rem
-    # del F_HB
 
     logger.info('Static Algo Result: (haven\'t deployed yet)')
     logger.info('Low latency:\nAccepted = ' + str(Stat_Accepted_LL) +
@@ -296,7 +287,7 @@ def WriteITGConCFG_ForOffline(filename):
                           ' -t ' + str(send_duration) + '\n'
         configfile += '}\n\n'
 
-    with open("configStatic", "w") as text_file:
+    with open(filename, "w") as text_file:
         text_file.write(configfile)
 
 
@@ -419,8 +410,17 @@ def runcommand(cmdline, suppressMessage=False):
     return out
 
 
+def CallITGController(filename):
+    # Call ITGController, run the test
+    out = runcommand("java -jar ~/ITGController/ITGController.jar " + filename)
+
+    # Wait for ITGController quit, show the processed log
+    out = runcommand("ITGDec /tmp/ITGSend.log")
+
+
 def RunOffline():
     """ Entry function to start the Offline algorithm simulation """
+    logger.info("Running: Offline (Full)")
 
     # Generate ListOfFlows
     GenerateAndSortListOfFlows()
@@ -440,17 +440,51 @@ def RunOffline():
     # TODO: 213: ITGLog. All: ITGRecv, ITGSend -Q -L 192.168.109.213
     # Note: restart the ITGSend to clear the log.
 
-    # Call ITGController, run the test
-    out = runcommand("java -jar ~/ITGController/ITGController.jar configOffline")
+    # Call ITGController and show the result
+    CallITGController("configOffline")
 
-    # Wait for ITGController quit
 
-    # Show the processed log
-    out = runcommand("ITGDec /tmp/ITGSend.log")
+
+def RunPlain():
+    """ Entry function to start the plain run(with no algo) """
+    logger.info("Running: Plain")
+
+    # Generate ListOfFlows
+    GenerateAndSortListOfFlows()
+
+    # Copy the list to the accepted list
+    global List_AcceptedFlow_LowLatency, List_AcceptedFlow_HighBandwidth
+    List_AcceptedFlow_LowLatency = ListOfFlows_LowLatency
+    List_AcceptedFlow_HighBandwidth = ListOfFlows_HighBandwidth
+
+    # Gen ITGController config-file
+    WriteITGConCFG_ForOffline("configPlain")
+
+    # Call ITGController and show the result
+    CallITGController("configPlain")
+
+
+def RunDelayAndBandwidthOnly():
+    logger.info("Running: Offline (Delay and bandwidth scheduled, will reject flow)")
+
+
+def RunQueueOnly():
+    logger.info("Running: Offline (Only queue, will accept all flows)")
 
 
 def main():
-    RunOffline()
+    logger.info("Choose algo: 1) Plain  2) Offline (Full)  3) Delay and BW  4) Queue only")
+    choice = raw_input().lower()
+    if choice == "1":
+        RunPlain()
+    elif choice == "2":
+        RunOffline()
+    elif choice == "3":
+        RunDelayAndBandwidthOnly()
+    elif choice == "4":
+        RunQueueOnly()
+    else:
+        print("Invalid input")
 
 
 if __name__ == '__main__':
