@@ -23,29 +23,7 @@ class FlowType(Enum):
     HighBandwidth = 1
     LowLatency = 2
 
-Machine_List = [
-    "10.0.0.201",
-    "10.0.0.211",
-    "10.0.0.212",
-    "10.0.0.213",
-]
-
 Duration = 30  # in seconds
-
-List_SRC_DST_Pair = [
-    ["10.0.0.201", "10.0.0.211"],
-    ["10.0.0.201", "10.0.0.212"],
-    ["10.0.0.201", "10.0.0.213"],
-    ["10.0.0.211", "10.0.0.201"],
-    ["10.0.0.211", "10.0.0.212"],
-    ["10.0.0.211", "10.0.0.213"],
-    ["10.0.0.212", "10.0.0.201"],
-    ["10.0.0.212", "10.0.0.211"],
-    ["10.0.0.212", "10.0.0.213"],
-    ["10.0.0.213", "10.0.0.201"],
-    ["10.0.0.213", "10.0.0.211"],
-    ["10.0.0.213", "10.0.0.212"],
-]
 
 List_SRC_DST_Group = [
     ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
@@ -326,14 +304,13 @@ def RunOffline():
     """ Entry function to start the Offline algorithm simulation """
 
     # Generate ListOfFlows
-    global ListOfFlows_LowLatency, ListOfFlows_HighBandwidth
     GenerateAndSortListOfFlows()
 
     # The static algorithm
     OfflineAlgo()
 
     # Gen ITGController config-file
-    WriteITGConCFG_ForOffline("configStatic")
+    WriteITGConCFG_ForOffline("configOffline")
 
     # ovs-vsctl add qos and queue
     createqueue()
@@ -345,7 +322,7 @@ def RunOffline():
     # Note: restart the ITGSend to clear the log.
 
     # Call ITGController, run the test
-    out = runcommand("java -jar ~/ITGController/ITGController.jar configStatic")
+    out = runcommand("java -jar ~/ITGController/ITGController.jar configOffline")
 
     # Wait for ITGController quit
 
@@ -457,8 +434,6 @@ def addflowentry_universal(list, flag_hb_ll):
 
             cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
                       ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
-            # cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,tcp,nw_dst=" + dsthost + \
-            #           ",tcp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
             out = runcommand(cmdline, True)
 
     return
