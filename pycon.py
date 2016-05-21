@@ -44,7 +44,7 @@ def main():
     # GetPathList('10.0.0.201', '10.0.0.211')
     # Get_Dijkstra_Path('10.0.0.201', '10.0.0.211', SchedulingAlgo.WSP, 998)
 
-    logger.info('Running Offline(Static) Test ...')
+    logger.info('Running Test ...')
     RunTest.RunOffline()
 
     # logger.info('Installing packet-in flow entries ...')

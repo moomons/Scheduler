@@ -33,14 +33,14 @@ List_SRC_DST_Group = [
 ]
 
 # Small scale test.
-List_SRC_DST_Group = [
-    ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
-    ["10.0.0.211", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
-]
+# List_SRC_DST_Group = [
+#     ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
+#     ["10.0.0.211", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
+# ]
 
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
+    [2, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
     # [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
     # [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
     [1, [FlowType.HighBandwidth, 0.35, 80, 4, 0]],
@@ -247,7 +247,8 @@ def WriteITGConCFG_ForOffline(filename):
     portoffset_hb = 33000
     # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
     packet_size = 1000  # in bytes, -c 1024
-    send_duration = 15000  # in ms, -t 10000
+    send_duration = 60000  # in ms, -t 10000
+    flowtype = '-O'
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
@@ -257,15 +258,25 @@ def WriteITGConCFG_ForOffline(filename):
 
     global List_AcceptedFlow_LowLatency
     if len(List_AcceptedFlow_LowLatency) > 0:
-        List_AcceptedFlow_LowLatency = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
-        for i, F in enumerate(List_AcceptedFlow_LowLatency):
-            List_AcceptedFlow_LowLatency[i]['assigned_port'] = portoffset_ll + i
+        sortedlist = sorted(List_AcceptedFlow_LowLatency, key=lambda k: k['srcip'])
+        portassigned = []
+        for i, F in enumerate(sortedlist):
+            assigned_port = portoffset_ll + i
+            F = dict(F)
+            F['assigned_port'] = assigned_port
+            portassigned.append(F)
+        List_AcceptedFlow_LowLatency = portassigned
 
     global List_AcceptedFlow_HighBandwidth
     if len(List_AcceptedFlow_HighBandwidth) > 0:
-        List_AcceptedFlow_HighBandwidth = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
-        for i, F in enumerate(List_AcceptedFlow_HighBandwidth):
-            List_AcceptedFlow_HighBandwidth[i]['assigned_port'] = portoffset_hb + i
+        sortedlist = sorted(List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
+        portassigned = []
+        for i, F in enumerate(sortedlist):
+            assigned_port = portoffset_hb + i
+            F = dict(F)
+            F['assigned_port'] = assigned_port
+            portassigned.append(F)
+            List_AcceptedFlow_HighBandwidth = portassigned
 
     listallaccepted = sorted(List_AcceptedFlow_LowLatency + List_AcceptedFlow_HighBandwidth, key=lambda k: k['srcip'])
 
@@ -279,13 +290,13 @@ def WriteITGConCFG_ForOffline(filename):
                     configfile += '}\n\n'
                     current_srcip = F['srcip']
                     configfile += 'Host ' + str(current_srcip) + ' {\n'
-            assigned_port = listallaccepted[i]['assigned_port']
+            assigned_port = F['assigned_port']
             bandwidth_Mbps = F['actual_bandwidth']
             if bandwidth_Mbps is None:
                 bandwidth_Mbps = F['bandwidth']
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
             configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                          ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                          ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
                           ' -t ' + str(send_duration) + '\n'
         configfile += '}\n\n'
 
