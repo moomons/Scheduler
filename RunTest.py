@@ -281,6 +281,8 @@ def WriteITGConCFG_ForOffline(filename):
                     configfile += 'Host ' + str(current_srcip) + ' {\n'
             assigned_port = listallaccepted[i]['assigned_port']
             bandwidth_Mbps = F['actual_bandwidth']
+            if bandwidth_Mbps is None:
+                bandwidth_Mbps = F['bandwidth']
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
             configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                           ' -O ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
@@ -444,10 +446,9 @@ def RunOffline():
     CallITGController("configOffline")
 
 
-
 def RunPlain():
     """ Entry function to start the plain run(with no algo) """
-    logger.info("Running: Plain")
+    logger.info("Running: Offline (Plain, no optimization)")
 
     # Generate ListOfFlows
     GenerateAndSortListOfFlows()
