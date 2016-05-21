@@ -309,7 +309,7 @@ def WriteITGConCFG_ForOffline(filename):
         text_file.write(configfile)
 
 
-def createqueue():
+def createqueue(clearPortsOnly=False):
     portlist = [
         ["192.168.109.214", ["eth1", "eth2", "eth3", "eth4"]],
         ["192.168.109.215", ["eth1", "eth2", "eth3", "eth4"]],
@@ -338,33 +338,34 @@ def createqueue():
         out = runcommand(cmdline, True)
         cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 --all destroy queue"
         out = runcommand(cmdline, True)
-        for port in ports:
-            # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
-            # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
-            # --id=@q2151 create queue other-config:priority=1 -- \
-            # --id=@q2152 create queue other-config:priority=2
-            qosname = "nq_" + port
-            queueno = switchip[-3:] + port[-1:]
-            queuename = "q_" + port
-            queuename_hb = queuename + "_hb"  # 1
-            queuename_ll = queuename + "_ll"  # 2
-            cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 -- set port " + port + " qos=@" + qosname + " -- " \
-                "--id=@" + qosname + " create qos type=linux-htb queues=" + queueno + "1=@" + queuename_hb + "," + queueno + "2=@" + queuename_ll + " -- " \
-                "--id=@" + queuename_hb + " create queue other-config:priority=1  -- " \
-                "--id=@" + queuename_ll + " create queue other-config:priority=2"
-            out = runcommand(cmdline, True)
+        if not clearPortsOnly:
+            for port in ports:
+                # ovs-vsctl --db=tcp:TargetIP:6640 -- set port eth1 qos=@newqos2151 -- \
+                # --id=@newqos2151 create qos type=linux-htb queues=2151=@q2151,12=@q2152 -- \
+                # --id=@q2151 create queue other-config:priority=1 -- \
+                # --id=@q2152 create queue other-config:priority=2
+                qosname = "nq_" + port
+                queueno = switchip[-3:] + port[-1:]
+                queuename = "q_" + port
+                queuename_hb = queuename + "_hb"  # 1
+                queuename_ll = queuename + "_ll"  # 2
+                cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 -- set port " + port + " qos=@" + qosname + " -- " \
+                    "--id=@" + qosname + " create qos type=linux-htb queues=" + queueno + "1=@" + queuename_hb + "," + queueno + "2=@" + queuename_ll + " -- " \
+                    "--id=@" + queuename_hb + " create queue other-config:priority=1  -- " \
+                    "--id=@" + queuename_ll + " create queue other-config:priority=2"
+                out = runcommand(cmdline, True)
 
     return True
 
 
-def addflowentries():
+def addflowentries(noPriority=False):
     """ Add entries to the flow table """
     # ovs-ofctl -O OpenFlow13 add-flow tcp:ServerIP:6666 priority=20,udp,nw_dst=DSTHOSTIP,udp_dst=5501,actions=set_queue:2151,output:1
-    addflowentry_universal(List_AcceptedFlow_LowLatency, "1")  # Careful! 1 for Low Latency, 2 for high bandwidth
-    addflowentry_universal(List_AcceptedFlow_HighBandwidth, "2")
+    addflowentry_universal(List_AcceptedFlow_LowLatency, "1", noPriority)  # Careful! 1 for Low Latency, 2 for high bandwidth
+    addflowentry_universal(List_AcceptedFlow_HighBandwidth, "2", noPriority)
 
 
-def addflowentry_universal(list, flag_hb_ll):
+def addflowentry_universal(list, flag_hb_ll, noPriority=False):
     global Mat_SWHosts
     ovs_mac_to_manageinterfaceip = {
         "00:00:00:1b:cd:03:04:64": "192.168.109.214",
@@ -409,10 +410,15 @@ def addflowentry_universal(list, flag_hb_ll):
             output_port = Mat_SWHosts[current_node][next_node][0]
 
             ovsserverip = ovs_mac_to_manageinterfaceip[current_node]
-            queueno = ovsserverip[-3:] + ovsswitch_port_eth_map[ovsserverip][output_port][-1:] + flag_hb_ll
 
-            cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
-                      ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
+            if not noPriority:
+                queueno = ovsserverip[-3:] + ovsswitch_port_eth_map[ovsserverip][output_port][-1:] + flag_hb_ll
+                cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
+                          ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=set_queue:" + queueno + ",output:" + str(output_port)
+            else:
+                cmdline = "ovs-ofctl -O OpenFlow13 add-flow tcp:" + ovsserverip + ":6666 priority=20,udp,nw_dst=" + dsthost + \
+                          ",udp_dst=" + str(assigned_port) + ",in_port=" + str(in_port) + ",actions=output:" + str(output_port)
+
             out = runcommand(cmdline, True)
 
     return
