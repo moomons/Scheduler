@@ -490,9 +490,47 @@ def RunPlain():
 def RunDelayAndBandwidthOnly():
     logger.info("Running: Offline (Delay and bandwidth scheduled, will reject flow)")
 
+    # Generate ListOfFlows
+    GenerateAndSortListOfFlows()
+
+    # The static algorithm, with path and delay, bw calc
+    OfflineAlgo(True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+
+    # Gen ITGController config-file
+    WriteITGConCFG_ForOffline("configOfflineDnBWOnly")
+
+    # ovs-vsctl onyl clear qos and queue
+    createqueue(True)  # def createqueue(clearPortsOnly=False):
+
+    # ovs-ofctl add output, no priority
+    addflowentries(True)  # def addflowentries(noPriority=False):
+
+    # Call ITGController and show the result
+    CallITGController("configOfflineDnBWOnly")
+
 
 def RunQueueOnly():
     logger.info("Running: Offline (Only queue, will accept all flows)")
+
+    # Generate ListOfFlows
+    GenerateAndSortListOfFlows()
+
+    # Copy the list to the accepted list directly, skip the delay and bw check
+    global List_AcceptedFlow_LowLatency, List_AcceptedFlow_HighBandwidth
+    List_AcceptedFlow_LowLatency = ListOfFlows_LowLatency
+    List_AcceptedFlow_HighBandwidth = ListOfFlows_HighBandwidth
+
+    # Gen ITGController config-file
+    WriteITGConCFG_ForOffline("configQueueOnly")
+
+    # ovs-vsctl add qos and queue
+    createqueue(False)  # def createqueue(clearPortsOnly=False):
+
+    # ovs-ofctl add output
+    addflowentries(False)  # def addflowentries(noPriority=False):
+
+    # Call ITGController and show the result
+    CallITGController("configQueueOnly")
 
 
 def main():
