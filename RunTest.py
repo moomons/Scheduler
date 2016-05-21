@@ -449,17 +449,17 @@ def RunOffline():
     # Generate ListOfFlows
     GenerateAndSortListOfFlows()
 
-    # The static algorithm
-    OfflineAlgo()
+    # The static algorithm, with path and delay, bw calc
+    OfflineAlgo(True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configOffline")
 
     # ovs-vsctl add qos and queue
-    createqueue()
+    createqueue(False)  # def createqueue(clearPortsOnly=False):
 
     # ovs-ofctl add output
-    addflowentries()
+    addflowentries(False)  # def addflowentries(noPriority=False):
 
     # TODO: 213: ITGLog. All: ITGRecv, ITGSend -Q -L 192.168.109.213
     # Note: restart the ITGSend to clear the log.
@@ -469,7 +469,7 @@ def RunOffline():
 
 
 def RunPlain():
-    """ Entry function to start the plain run(with no algo) """
+    """ Entry function to start the plain run(with no algo or path) """
     logger.info("Running: Offline (Plain, no optimization)")
 
     # Generate ListOfFlows
