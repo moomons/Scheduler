@@ -17,6 +17,7 @@ from pycon_cfg import *
 import os
 from enum import Enum
 from pycon_def import GetPathList, Mat_BW_Cap, Mat_SWHosts
+import random
 
 
 class FlowType(Enum):
@@ -177,7 +178,7 @@ def AddFlow(flow, IsLowLatencyFlow=False):
             assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
 
 
-def OfflineAlgo():
+def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
     logger.info('Static Algorithm starting')
 
     # Statistics info to collect & show
@@ -186,6 +187,8 @@ def OfflineAlgo():
     for F_LL in ListOfFlows_LowLatency:
         logger.info(dict(F_LL))
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
+        if pathramdomize:
+            random.shuffle(paths)
         for viable_path in paths:
             bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
             delay = GetPathDelay(viable_path)
@@ -208,6 +211,8 @@ def OfflineAlgo():
         List_WaitingList = []
         logger.info(dict(F_HB))
         paths, paths_number = GetPathList(F_HB['srcip'], F_HB['dstip'])
+        if pathramdomize:
+            random.shuffle(paths)
         for viable_path in paths:
             bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
             if F_HB['bandwidth'] <= bw_rem:
