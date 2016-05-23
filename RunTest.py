@@ -24,8 +24,6 @@ class FlowType(Enum):
     HighBandwidth = 1
     LowLatency = 2
 
-Duration = 30  # in seconds
-
 List_SRC_DST_Group = [
     ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
     ["10.0.0.211", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
@@ -33,25 +31,25 @@ List_SRC_DST_Group = [
     ["10.0.0.213", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
 ]
 
-# Small scale test.
-# List_SRC_DST_Group = [
-#     ["10.0.0.201", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
-#     ["10.0.0.211", ["10.0.0.201", "10.0.0.211", "10.0.0.212", "10.0.0.213"]],
-# ]
+List_SRC_DST_Group = [
+    ["10.0.0.211", ["10.0.0.201", "10.0.0.212"]],
+    ["10.0.0.212", ["10.0.0.211", "10.0.0.213"]],
+]
 
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [2, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
+    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
     # [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
     # [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
-    [1, [FlowType.HighBandwidth, 0.35, 80, 4, 0]],
+    [1, [FlowType.HighBandwidth, 0.35, 500, 250, 0]],
 ]
 
-# Small scale test.
-# Flow_To_Generate_Per_SRCDSTPair = [
-#     [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],
-#     [1, [FlowType.HighBandwidth, 0.5, 500, 300, 0]],
-# ]
+portoffset_ll = 22000
+portoffset_hb = 33000
+# poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
+packet_size = 1000  # in bytes, -c 1024
+send_duration = 60000  # in ms, -t 10000
+flowtype = '-O'
 
 # DictOfFlows_LowLatency = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 8, 'delay': 1000}]
 # DictOfFlows_HighBandwidth = [{'weight': '1.0', 'srcip': '10.0.0.201', 'dstip': '10.0.0.211', 'bandwidth': 500, 'minbandwidth': 250}]
@@ -159,7 +157,10 @@ def AddFlow(flow, IsLowLatencyFlow=False):
     """ Let's Rock """
     assert(flow['path'] is not None)
     path = flow['path']
-    bandwidth = flow['actual_bandwidth']
+    if 'actual_bandwidth' in flow:
+        bandwidth = flow['actual_bandwidth']
+    else:
+        bandwidth = flow['bandwidth']
     assert(bandwidth is not None)
 
     if IsLowLatencyFlow:  # LowLatency Flow
@@ -189,20 +190,24 @@ def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
         paths, paths_number = GetPathList(F_LL['srcip'], F_LL['dstip'])
         if pathramdomize:
             random.shuffle(paths)
-        for viable_path in paths:
-            bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
-            delay = GetPathDelay(viable_path)
-            if F_LL['bandwidth'] <= bw_rem and delay <= F_LL['delay'] and CheckUpdatedDelay(F_LL):
-                # Basic req okay. Check other LL flow delay req.
-                F_LL['path'] = viable_path
-                F_LL['actual_bandwidth'] = F_LL['bandwidth']
-                AddFlow(F_LL, True)
-                Stat_Accepted_LL += 1
-                break
-            path_index = paths.index(viable_path)
-            if path_index >= len(paths) - 1:  # didn't find a good path
-                logger.warning("Rejected")
-                Stat_Rejected_LL += 1
+        if not delaybwcalc:
+            F_LL['path'] = paths[0]
+            AddFlow(F_LL, True)
+        else:
+            for viable_path in paths:
+                bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
+                delay = GetPathDelay(viable_path)
+                if F_LL['bandwidth'] <= bw_rem and delay <= F_LL['delay'] and CheckUpdatedDelay(F_LL):
+                    # Basic req okay. Check other LL flow delay req.
+                    F_LL['path'] = viable_path
+                    F_LL['actual_bandwidth'] = F_LL['bandwidth']
+                    AddFlow(F_LL, True)
+                    Stat_Accepted_LL += 1
+                    break
+                path_index = paths.index(viable_path)
+                if path_index >= len(paths) - 1:  # didn't find a good path
+                    logger.warning("Rejected")
+                    Stat_Rejected_LL += 1
 
     Stat_Accepted_HB = 0
     Stat_Accepted_HB_UsingWaitList = 0
@@ -213,33 +218,37 @@ def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
         paths, paths_number = GetPathList(F_HB['srcip'], F_HB['dstip'])
         if pathramdomize:
             random.shuffle(paths)
-        for viable_path in paths:
-            bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
-            if F_HB['bandwidth'] <= bw_rem:
-                F_HB['path'] = viable_path
-                F_HB['actual_bandwidth'] = F_HB['bandwidth']
-                AddFlow(F_HB, False)  # Add high bw flow to the list
-                Stat_Accepted_HB += 1
-                break
-            elif bw_rem > F_HB['minbandwidth']:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
-                F_HB['path'] = viable_path
-                F_HB['actual_bandwidth'] = bw_rem
-                List_WaitingList.append(F_HB)
-            path_index = paths.index(viable_path)
-            if path_index >= len(paths) - 1:  # Still haven't found a perfect path
-                if len(List_WaitingList) > 0:
-                    List_WaitingList = list(reversed(sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'])))
-                    F_HB = List_WaitingList[0]  # Select the req with largest actual_bandwidth
-                    AddFlow(F_HB, False)
+        if not delaybwcalc:
+            F_HB['path'] = paths[0]
+            AddFlow(F_HB, False)
+        else:
+            for viable_path in paths:
+                bw_rem = GetRemainingBandwidth(viable_path)  # Note: delay in us, bw_rem in Mbps
+                if F_HB['bandwidth'] <= bw_rem:
+                    F_HB['path'] = viable_path
+                    F_HB['actual_bandwidth'] = F_HB['bandwidth']
+                    AddFlow(F_HB, False)  # Add high bw flow to the list
                     Stat_Accepted_HB += 1
-                    logger.warning("Accepted from the waiting list")
-                    Stat_Accepted_HB_UsingWaitList += 1
                     break
-                else:
-                    logger.warning("Rejected")
-                    Stat_Rejected_HB += 1
+                elif bw_rem > F_HB['minbandwidth']:  # Hmm.. Not the best one. Dump it to the waiting list anyway :P
+                    F_HB['path'] = viable_path
+                    F_HB['actual_bandwidth'] = bw_rem
+                    List_WaitingList.append(F_HB)
+                path_index = paths.index(viable_path)
+                if path_index >= len(paths) - 1:  # Still haven't found a perfect path
+                    if len(List_WaitingList) > 0:
+                        List_WaitingList = list(reversed(sorted(List_WaitingList, key=lambda k: k['actual_bandwidth'])))
+                        F_HB = List_WaitingList[0]  # Select the req with largest actual_bandwidth
+                        AddFlow(F_HB, False)
+                        Stat_Accepted_HB += 1
+                        logger.warning("Accepted from the waiting list")
+                        Stat_Accepted_HB_UsingWaitList += 1
+                        break
+                    else:
+                        logger.warning("Rejected")
+                        Stat_Rejected_HB += 1
 
-    logger.info('Static Algo Result: (haven\'t deployed yet)')
+    logger.info('Static Algo Result: (not deployed yet)')
     logger.info('Low latency:\nAccepted = ' + str(Stat_Accepted_LL) +
                 ', Rejected = ' + str(Stat_Rejected_LL))
     logger.info('High bandwidth:\nAccepted(Full BW) = ' + str(Stat_Accepted_HB) +
@@ -248,18 +257,19 @@ def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
 
 def WriteITGConCFG_ForOffline(filename):
-    portoffset_ll = 22000
-    portoffset_hb = 33000
-    # poisson_average_pktps = 1000  # Average 1000 packets/sec, -O 1000
-    packet_size = 1000  # in bytes, -c 1024
-    send_duration = 60000  # in ms, -t 10000
-    flowtype = '-O'
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
     # -a 10.0.0.211 -T UDP -m RTTM -rp 21301 -O 1000 -c 1024 -t 10000
     # -a 10.0.0.211 -T UDP -m RTTM -rp 21302 -O 1000 -c 1024 -t 10000
     # }
+
+    ip_10_to_192 = {
+        "10.0.0.201": "192.168.109.201",
+        "10.0.0.211": "192.168.109.211",
+        "10.0.0.212": "192.168.109.212",
+        "10.0.0.213": "192.168.109.213",
+    }
 
     global List_AcceptedFlow_LowLatency
     if len(List_AcceptedFlow_LowLatency) > 0:
@@ -289,20 +299,26 @@ def WriteITGConCFG_ForOffline(filename):
         for i, F in enumerate(listallaccepted):
             if i == 0:
                 current_srcip = F['srcip']
-                configfile += 'Host ' + str(current_srcip) + ' {\n'
+                configfile += 'Host ' + ip_10_to_192[current_srcip] + ' {\n'
             else:
                 if current_srcip != F['srcip']:
                     configfile += '}\n\n'
                     current_srcip = F['srcip']
-                    configfile += 'Host ' + str(current_srcip) + ' {\n'
+                    configfile += 'Host ' + ip_10_to_192[current_srcip] + ' {\n'
             assigned_port = F['assigned_port']
-            bandwidth_Mbps = F['actual_bandwidth']
-            if bandwidth_Mbps is None:
+            if 'actual_bandwidth' in F:
+                bandwidth_Mbps = F['actual_bandwidth']
+            else:
                 bandwidth_Mbps = F['bandwidth']
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
-            configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                          ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                          ' -t ' + str(send_duration) + '\n'
+            if assigned_port < 30000:
+                configfile += '  -a ' + F['dstip'] + ' -m RTTM -d 1000 -rp ' + str(assigned_port) + \
+                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                              ' -t ' + str(send_duration) + '\n'
+            else:
+                configfile += '  -a ' + F['dstip'] + ' -m RTTM -d 2000 -rp ' + str(assigned_port) + \
+                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
+                              ' -t ' + str(send_duration) + '\n'
         configfile += '}\n\n'
 
     with open(filename, "w") as text_file:
@@ -365,7 +381,7 @@ def addflowentries(noPriority=False):
     addflowentry_universal(List_AcceptedFlow_HighBandwidth, "2", noPriority)
 
 
-def addflowentry_universal(list, flag_hb_ll, noPriority=False):
+def addflowentry_universal(list, flag_hb_ll, noPriority=False, clearDeprecatedFlowEntryFirst=True):
     global Mat_SWHosts
     ovs_mac_to_manageinterfaceip = {
         "00:00:00:1b:cd:03:04:64": "192.168.109.214",
@@ -396,6 +412,9 @@ def addflowentry_universal(list, flag_hb_ll, noPriority=False):
         },
     }
 
+    if clearDeprecatedFlowEntryFirst:
+        ClearDeprecatedFlowEntry()
+
     for flow in list:
         logger.info('Add flow entry: ' + str(dict(flow)))
         assigned_port = flow['assigned_port']
@@ -424,6 +443,18 @@ def addflowentry_universal(list, flag_hb_ll, noPriority=False):
     return
 
 
+def ClearDeprecatedFlowEntry():
+    switchlist = [
+        "192.168.109.214",
+        "192.168.109.215",
+        "192.168.109.224",
+        "192.168.109.225",
+    ]
+    for ovsserverip in switchlist:
+        logger.info("Clearing deprecated UDP flow entries on " + ovsserverip)
+        cmdline = "ovs-ofctl -O OpenFlow13 del-flows tcp:" + ovsserverip + ":6666 udp"
+        out = runcommand(cmdline, True)
+
 def runcommand(cmdline, suppressMessage=False):
     logger.info("Command line: " + cmdline)
     output = os.popen(cmdline)
@@ -440,6 +471,8 @@ def CallITGController(filename):
 
     # Wait for ITGController quit, show the processed log
     out = runcommand("ITGDec /tmp/ITGSend.log")
+    from procitgresult import parsetestout
+    parsetestout(out)
 
 
 def RunOffline():
@@ -450,13 +483,15 @@ def RunOffline():
     GenerateAndSortListOfFlows()
 
     # The static algorithm, with path and delay, bw calc
-    OfflineAlgo(True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+    OfflineAlgo(False, True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configOffline")
 
     # ovs-vsctl add qos and queue
     createqueue(False)  # def createqueue(clearPortsOnly=False):
+
+    # ClearDeprecatedFlowEntry()
 
     # ovs-ofctl add output
     addflowentries(False)  # def addflowentries(noPriority=False):
@@ -483,6 +518,8 @@ def RunPlain():
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configPlain")
 
+    ClearDeprecatedFlowEntry()
+
     # Call ITGController and show the result
     CallITGController("configPlain")
 
@@ -494,13 +531,15 @@ def RunDelayAndBandwidthOnly():
     GenerateAndSortListOfFlows()
 
     # The static algorithm, with path and delay, bw calc
-    OfflineAlgo(True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+    OfflineAlgo(True, True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configOfflineDnBWOnly")
 
     # ovs-vsctl onyl clear qos and queue
     createqueue(True)  # def createqueue(clearPortsOnly=False):
+
+    ClearDeprecatedFlowEntry()
 
     # ovs-ofctl add output, no priority
     addflowentries(True)  # def addflowentries(noPriority=False):
@@ -516,9 +555,10 @@ def RunQueueOnly():
     GenerateAndSortListOfFlows()
 
     # Copy the list to the accepted list directly, skip the delay and bw check
-    global List_AcceptedFlow_LowLatency, List_AcceptedFlow_HighBandwidth
-    List_AcceptedFlow_LowLatency = ListOfFlows_LowLatency
-    List_AcceptedFlow_HighBandwidth = ListOfFlows_HighBandwidth
+    # global List_AcceptedFlow_LowLatency, List_AcceptedFlow_HighBandwidth
+    # List_AcceptedFlow_LowLatency = ListOfFlows_LowLatency
+    # List_AcceptedFlow_HighBandwidth = ListOfFlows_HighBandwidth
+    OfflineAlgo(True, False)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configQueueOnly")
@@ -526,11 +566,26 @@ def RunQueueOnly():
     # ovs-vsctl add qos and queue
     createqueue(False)  # def createqueue(clearPortsOnly=False):
 
+    # ClearDeprecatedFlowEntry()
+
     # ovs-ofctl add output
     addflowentries(False)  # def addflowentries(noPriority=False):
 
     # Call ITGController and show the result
     CallITGController("configQueueOnly")
+
+
+def KillITG():
+    logger.info("Killing all ITGRecv and ITGSend ...")
+    machinelist = [
+        "192.168.109.201",
+        "192.168.109.211",
+        "192.168.109.212",
+        "192.168.109.213",
+    ]
+    for machine in machinelist:
+        cmdline = "ssh hadoop@" + machine + " 'bash -s' < ITGKill.sh"
+        out = runcommand(cmdline)
 
 
 def main():
