@@ -45,10 +45,13 @@ def main():
     # Get_Dijkstra_Path('10.0.0.201', '10.0.0.211', SchedulingAlgo.WSP, 998)
 
     logger.info('Running Test ...')
-    RunTest.RunPlain()
-    # RunTest.RunOffline()
+    # RunTest.RunPlain()
+    RunTest.RunOffline()
     # RunTest.RunDelayAndBandwidthOnly()
     # RunTest.RunQueueOnly()
+
+    # Kill ITGSend and ITGRecv to get ready for the next round
+    RunTest.KillITG()
 
     # logger.info('Installing packet-in flow entries ...')
     # Init_Basic_FlowEntries()

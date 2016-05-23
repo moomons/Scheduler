@@ -1,3 +1,5 @@
+from pycon_cfg import *
+
 
 def showstat(list, title):
     listlen = len(list)
@@ -14,7 +16,7 @@ def showstat(list, title):
     average_bitrate = sumavgbitrate / 1000.0 / listlen  # Mbps
     average_pkts_droprate = sumpktsdroprate / listlen  # pct
 
-    print(title + "Delay=%.3f ms" % average_delay +
+    logger.info(title + "Delay=%.3f ms" % average_delay +
           ",\tJitter=%.3f ms" % average_jitter +
           ",\tBitrate=%.3f Mbps" % average_bitrate +
           ",\tDroprate=%.2f %%" % average_pkts_droprate)
