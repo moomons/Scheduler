@@ -46,8 +46,8 @@ def main():
 
     logger.info('Running Test ...')
     # RunTest.RunPlain()
-    RunTest.RunOffline()
-    # RunTest.RunDelayAndBandwidthOnly()
+    # RunTest.RunOffline()
+    RunTest.RunDelayAndBandwidthOnly()
     # RunTest.RunQueueOnly()
 
     # Kill ITGSend and ITGRecv to get ready for the next round

@@ -1,6 +1,19 @@
 from pycon_cfg import *
 
 
+def showsingleflowstat(flow):
+    average_delay = 1000 * float(flow['average_delay'])  # ms
+    average_jitter = 1000 * float(flow['average_jitter'])  # ms
+    average_bitrate = float(flow['average_bitrate']) / 1000.0  # Mbps
+    average_pkts_droprate = float(flow['pkts_dropped_rate'])  # pct
+
+    logger.info("From " + flow['ipport_source'] + " to " + flow['ipport_destination'] +
+                ": Delay=%.3f ms" % average_delay +
+                ",\tJitter=%.3f ms" % average_jitter +
+                ",\tBitrate=%.3f Mbps" % average_bitrate +
+                ",\tDroprate=%.2f %%" % average_pkts_droprate)
+
+
 def showstat(list, title):
     listlen = len(list)
 
@@ -10,6 +23,7 @@ def showstat(list, title):
         sumavgjitter += float(flow['average_jitter'])
         sumavgbitrate += float(flow['average_bitrate'])
         sumpktsdroprate += float(flow['pkts_dropped_rate'])
+        showsingleflowstat(flow)
 
     average_delay = 1000 * sumavgdelay / listlen  # ms
     average_jitter = 1000 * sumavgjitter / listlen  # ms

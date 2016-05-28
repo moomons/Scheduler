@@ -38,10 +38,12 @@ List_SRC_DST_Group = [
 
 Flow_To_Generate_Per_SRCDSTPair = [
     # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [1, [FlowType.LowLatency, 0.1, 8, 0, 1000]],  # MARK: Set to 80
-    # [1, [FlowType.LowLatency, 0.3, 8, 0, 1000]],
-    # [1, [FlowType.LowLatency, 0.2, 8, 0, 1000]],
-    [1, [FlowType.HighBandwidth, 0.35, 500, 250, 0]],
+    [1, [FlowType.LowLatency, 0.5, 4, 0, 1000]],
+    [1, [FlowType.LowLatency, 0.3, 4, 0, 1000]],
+    [1, [FlowType.LowLatency, 0.1, 4, 0, 1000]],
+    [1, [FlowType.HighBandwidth, 0.35, 256, 256, 0]],
+    [1, [FlowType.HighBandwidth, 0.25, 256, 250, 0]],
+    [1, [FlowType.HighBandwidth, 0.15, 256, 250, 0]],
 ]
 
 portoffset_ll = 22000
@@ -176,7 +178,7 @@ def AddFlow(flow, IsLowLatencyFlow=False):
         List_AcceptedFlow_HighBandwidth.append(flow)  # Add the flow to the accepted list, congrats!
         for i in range(0, len(path) - 1):
             Mat_BW_Cap_Remain[path[i]][path[i + 1]] -= bandwidth  # Occupy the bandwidth
-            assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
+            # assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
 
 
 def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
@@ -367,7 +369,7 @@ def createqueue(clearPortsOnly=False):
                 queuename_ll = queuename + "_ll"  # 2
                 cmdline = "ovs-vsctl --db=tcp:" + switchip + ":6640 -- set port " + port + " qos=@" + qosname + " -- " \
                     "--id=@" + qosname + " create qos type=linux-htb queues=" + queueno + "1=@" + queuename_hb + "," + queueno + "2=@" + queuename_ll + " -- " \
-                    "--id=@" + queuename_hb + " create queue other-config:priority=1  -- " \
+                    "--id=@" + queuename_hb + " create queue other-config:priority=1 other-config:min-rate=100000000 -- " \
                     "--id=@" + queuename_ll + " create queue other-config:priority=2"
                 out = runcommand(cmdline, True)
 
