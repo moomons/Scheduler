@@ -11,7 +11,7 @@ from pycon_cfg import *
 
 class VSCtlRemote:
   def __init__(self):
-    print 'remote control for ovs-vsctl command \n'
+    print('remote control for ovs-vsctl command \n')
 
 
   def ShowBridge(self, OVSServerIP):

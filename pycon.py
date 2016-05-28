@@ -45,10 +45,11 @@ def main():
     # Get_Dijkstra_Path('10.0.0.201', '10.0.0.211', SchedulingAlgo.WSP, 998)
 
     logger.info('Running Test ...')
-    # RunTest.RunPlain()
-    # RunTest.RunOffline()
-    RunTest.RunDelayAndBandwidthOnly()
-    # RunTest.RunQueueOnly()
+    onlineAlgo = False
+    RunTest.RunPlain()
+    # RunTest.RunOffline(onlineAlgo)
+    # RunTest.RunDelayAndBandwidthOnly(onlineAlgo)
+    # RunTest.RunQueueOnly(onlineAlgo)
 
     # Kill ITGSend and ITGRecv to get ready for the next round
     RunTest.KillITG()

@@ -37,13 +37,13 @@ List_SRC_DST_Group = [
 ]
 
 Flow_To_Generate_Per_SRCDSTPair = [
-    # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)]
-    [1, [FlowType.LowLatency, 0.5, 4, 0, 1000]],
-    [1, [FlowType.LowLatency, 0.3, 4, 0, 1000]],
-    [1, [FlowType.LowLatency, 0.1, 4, 0, 1000]],
-    [1, [FlowType.HighBandwidth, 0.35, 256, 256, 0]],
-    [1, [FlowType.HighBandwidth, 0.25, 256, 250, 0]],
-    [1, [FlowType.HighBandwidth, 0.15, 256, 250, 0]],
+    # Count, [FlowType, weight(alpha/beta), Bandwidth(Mbps), MinBandwidth(Mbps), Delay(us)], StartTime(ms, for Online)
+    [1, [FlowType.LowLatency, 0.5, 4, 0, 1000], 30000],
+    [1, [FlowType.LowLatency, 0.3, 4, 0, 1000], 15000],
+    [1, [FlowType.LowLatency, 0.1, 4, 0, 1000], 5000],
+    [1, [FlowType.HighBandwidth, 0.35, 256, 256, 0], 20000],
+    [1, [FlowType.HighBandwidth, 0.25, 256, 250, 0], 10000],
+    [1, [FlowType.HighBandwidth, 0.15, 256, 250, 0], 0],
 ]
 
 portoffset_ll = 22000
@@ -86,12 +86,14 @@ def GenerateAndSortListOfFlows():
                 params = flow[1]
                 weight = params[1]
                 bandwidth = params[2]
+                flowstarttime = flow[2]  # for online
 
                 flowdict = defaultdict(lambda: None)
                 flowdict['weight'] = weight
                 flowdict['srcip'] = source
                 flowdict['dstip'] = dest
                 flowdict['bandwidth'] = bandwidth
+                flowdict['starttime'] = flowstarttime  # for online
 
                 if params[0] == FlowType.LowLatency:
                     delay = params[4]
@@ -181,7 +183,7 @@ def AddFlow(flow, IsLowLatencyFlow=False):
             # assert(Mat_BW_Cap_Remain[path[i]][path[i + 1]] >= 0)  # Of course the bandwidth shouldn't be minus
 
 
-def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+def OfflineAlgo(pathramdomize=True, delaybwcalc=True, onlineAlgo=False):
     logger.info('Static Algorithm starting')
 
     # Statistics info to collect & show
@@ -258,7 +260,7 @@ def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
                 ', Rejected = ' + str(Stat_Rejected_HB))
 
 
-def WriteITGConCFG_ForOffline(filename):
+def WriteITGConCFG_ForOffline(filename, onlineAlgo = False):
     configfile = ''
     # Example:
     # Host 192.168.109.201 {
@@ -314,13 +316,16 @@ def WriteITGConCFG_ForOffline(filename):
                 bandwidth_Mbps = F['bandwidth']
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
             if assigned_port < 30000:
-                configfile += '  -a ' + F['dstip'] + ' -m RTTM -d 1000 -rp ' + str(assigned_port) + \
+                configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                               ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                              ' -t ' + str(send_duration) + '\n'
+                              ' -t ' + str(send_duration)
             else:
-                configfile += '  -a ' + F['dstip'] + ' -m RTTM -d 2000 -rp ' + str(assigned_port) + \
+                configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
                               ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                              ' -t ' + str(send_duration) + '\n'
+                              ' -t ' + str(send_duration)
+            if onlineAlgo:
+                configfile += ' -d ' + str(F['starttime'])
+            configfile += '\n'
         configfile += '}\n\n'
 
     with open(filename, "w") as text_file:
@@ -477,7 +482,7 @@ def CallITGController(filename):
     parsetestout(out)
 
 
-def RunOffline():
+def RunOffline(onlineAlgo=False):
     """ Entry function to start the Offline algorithm simulation """
     logger.info("Running: Offline (Full)")
 
@@ -485,7 +490,7 @@ def RunOffline():
     GenerateAndSortListOfFlows()
 
     # The static algorithm, with path and delay, bw calc
-    OfflineAlgo(False, True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+    OfflineAlgo(False, True, onlineAlgo)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configOffline")
@@ -526,14 +531,14 @@ def RunPlain():
     CallITGController("configPlain")
 
 
-def RunDelayAndBandwidthOnly():
+def RunDelayAndBandwidthOnly(onlineAlgo=False):
     logger.info("Running: Offline (Delay and bandwidth scheduled, will reject flow)")
 
     # Generate ListOfFlows
     GenerateAndSortListOfFlows()
 
     # The static algorithm, with path and delay, bw calc
-    OfflineAlgo(True, True)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+    OfflineAlgo(True, True, onlineAlgo)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configOfflineDnBWOnly")
@@ -550,7 +555,7 @@ def RunDelayAndBandwidthOnly():
     CallITGController("configOfflineDnBWOnly")
 
 
-def RunQueueOnly():
+def RunQueueOnly(onlineAlgo=False):
     logger.info("Running: Offline (Only queue, will accept all flows)")
 
     # Generate ListOfFlows
@@ -560,7 +565,7 @@ def RunQueueOnly():
     # global List_AcceptedFlow_LowLatency, List_AcceptedFlow_HighBandwidth
     # List_AcceptedFlow_LowLatency = ListOfFlows_LowLatency
     # List_AcceptedFlow_HighBandwidth = ListOfFlows_HighBandwidth
-    OfflineAlgo(True, False)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
+    OfflineAlgo(True, False, onlineAlgo)  # def OfflineAlgo(pathramdomize=True, delaybwcalc=True):
 
     # Gen ITGController config-file
     WriteITGConCFG_ForOffline("configQueueOnly")
