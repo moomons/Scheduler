@@ -317,14 +317,16 @@ def WriteITGConCFG_ForOffline(filename, onlineAlgo = False):
             poisson_average_pktps = int(1000000 * bandwidth_Mbps / 8.0 / packet_size)
             if assigned_port < 30000:
                 configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                              ' -t ' + str(send_duration)
+                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size)
             else:
                 configfile += '  -a ' + F['dstip'] + ' -m RTTM -rp ' + str(assigned_port) + \
-                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size) + \
-                              ' -t ' + str(send_duration)
+                              ' ' + flowtype + ' ' + str(poisson_average_pktps) + ' -c ' + str(packet_size)
             if onlineAlgo:
-                configfile += ' -d ' + str(F['starttime'])
+                starttime = F['starttime']
+                assert(send_duration - starttime > 0)
+                configfile += ' -t ' + str(send_duration - starttime) + ' -d ' + str(starttime)
+            else:
+                configfile += ' -t ' + str(send_duration)
             configfile += '\n'
         configfile += '}\n\n'
 
